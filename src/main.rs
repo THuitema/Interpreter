@@ -1,3 +1,5 @@
+mod lexer;
+mod types;
 use std::io::{self, Write};
 
 fn main() {
@@ -14,11 +16,15 @@ fn main() {
 
         let input = input.trim();
 
-        println!("{input}");
-
         // Exit condition
         if input == "q" || input == "quit" {
             break;
+        }
+        
+        println!("{input}");
+        match lexer::tokenize(input) {
+            Ok(tokens) => println!("Success"),
+            Err(e) => println!("{}", e)
         }
     }
 
