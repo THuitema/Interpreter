@@ -1,0 +1,16 @@
+Expr -> AdditiveExpr
+AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr -Int | MultiplicativeExpr
+    AdditiveOperator -> + | -
+MultiplicativeExpr -> PrimaryExpr MultiplicativeOperator MultiplicativeExpr | PrimaryExpr
+    MultiplicativeOperator -> * | /
+PrimaryExpr -> Int | Float | ( Expr )
+
+
+Expr types:
+Int of n
+Float of d
+Binop of (op, expr, expr)
+- Add
+- Sub
+- Mult
+- Div
