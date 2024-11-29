@@ -39,37 +39,37 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     }
 
     // Plus
-    else if let Some(capture) = re_plus.captures(input) {
+    else if let Some(_) = re_plus.captures(input) {
       tokens.push(Token::TokPlus);
       input = &input[1..];
     }
 
     // Minus
-    else if let Some(capture) = re_minus.captures(input) {
+    else if let Some(_) = re_minus.captures(input) {
       tokens.push(Token::TokMinus);
       input = &input[1..];
     }
 
     // Mult
-    else if let Some(capture) = re_mult.captures(input) {
+    else if let Some(_) = re_mult.captures(input) {
       tokens.push(Token::TokMult);
       input = &input[1..];
     }
 
     // Div
-    else if let Some(capture) = re_div.captures(input) {
+    else if let Some(_) = re_div.captures(input) {
       tokens.push(Token::TokDiv);
       input = &input[1..];
     }
 
     // Left Parenthesis
-    else if let Some(capture) = re_lparen.captures(input) {
+    else if let Some(_) = re_lparen.captures(input) {
       tokens.push(Token::TokLParen);
       input = &input[1..];
     }
 
     // Right Parenthesis
-    else if let Some(capture) = re_rparen.captures(input) {
+    else if let Some(_) = re_rparen.captures(input) {
       tokens.push(Token::TokRParen);
       input = &input[1..];
     }

@@ -1,5 +1,6 @@
 mod lexer;
 mod types;
+mod parser;
 use std::io::{self, Write};
 
 fn main() {
@@ -23,7 +24,7 @@ fn main() {
         
         println!("{input}");
         match lexer::tokenize(input) {
-            Ok(tokens) => println!("Success"),
+            Ok(_) => println!("Success"),
             Err(e) => println!("{}", e)
         }
     }
