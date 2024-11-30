@@ -24,7 +24,12 @@ fn main() {
         
         println!("{input}");
         match lexer::tokenize(input) {
-            Ok(_) => println!("Success"),
+            Ok(t) => 
+                {for token in t {
+                    print!("{}, ", token)
+                }
+                println!("");
+                },
             Err(e) => println!("{}", e)
         }
     }

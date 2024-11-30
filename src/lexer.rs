@@ -6,8 +6,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
 
   // Regex Patterns
   let re_whitespace = Regex::new(r"^(\s+)").unwrap();
-  let re_int = Regex::new(r"^(-?\d+)").unwrap();
-  let re_float = Regex::new(r"^(-?\d*\.\d+)").unwrap();
+  let re_pos_int = Regex::new(r"^(\d+)").unwrap();
+  let re_neg_int = Regex::new(r"^(-)(\d+)").unwrap();
+  let re_pos_float = Regex::new(r"^(\d*\.\d+)").unwrap();
+  let re_neg_float = Regex::new(r"^(-)(\d*\.\d+)").unwrap();
   let re_plus = Regex::new(r"^(\+)").unwrap();
   let re_minus = Regex::new(r"^(-)").unwrap();
   let re_mult = Regex::new(r"^(\*)").unwrap();
@@ -24,18 +26,34 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       input = &input[capture_str.len()..];
     }
 
-    // Float
-    else if let Some(capture) = re_float.captures(input) {
+    // Non-negative Float
+    else if let Some(capture) = re_pos_float.captures(input) {
       let capture_str = capture.get(0).unwrap().as_str();
       tokens.push(Token::TokFloat(capture_str.parse::<f32>().unwrap()));
       input = &input[capture_str.len()..];
     }
 
-    // Int
-    else if let Some(capture) = re_int.captures(input) {
+    // Negative Float
+    else if let Some(capture) = re_neg_float.captures(input) {
+      let capture_str = capture.get(2).unwrap().as_str();
+      tokens.push(Token::TokUnaryMinus);
+      tokens.push(Token::TokFloat(capture_str.parse::<f32>().unwrap()));
+      input = &input[(capture_str.len() + 1)..]; // + 1 to account for minus sign
+    }
+
+    // Non-negative Int
+    else if let Some(capture) = re_pos_int.captures(input) {
       let capture_str = capture.get(0).unwrap().as_str();
-      tokens.push(Token::TokInt(capture_str.parse::<i32>().unwrap()));
+      tokens.push(Token::TokInt(capture_str.parse::<u32>().unwrap()));
       input = &input[capture_str.len()..];
+    }
+
+    // Negative Int
+    else if let Some(capture) = re_neg_int.captures(input) {
+      let capture_str = capture.get(2).unwrap().as_str();
+      tokens.push(Token::TokUnaryMinus);
+      tokens.push(Token::TokInt(capture_str.parse::<u32>().unwrap()));
+      input = &input[(capture_str.len() + 1)..]; // + 1 to account for minus sign
     }
 
     // Plus
