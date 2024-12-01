@@ -30,14 +30,37 @@ impl fmt::Display for Token {
 }
 
 pub enum Expr {
-  Int(i32),
-  Float(f32),
-  Binop(Op, Box<Expr>, Box<Expr>)
+    Int(i32),
+    Float(f32),
+    Binop(Op, Box<Expr>, Box<Expr>),
+}
+
+impl fmt::Display for Expr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Expr::Int(n) => write!(f, "Int({})", n),
+            Expr::Float(d) => write!(f, "Float({})", d),
+            Expr::Binop(op, left, right) => {
+                write!(f, "Binop({}, {}, {})", op, left, right)
+            }
+        }
+    }
 }
 
 pub enum Op {
-  Add,
-  Sub,
-  Mult,
-  Div
+    Add,
+    Sub,
+    Mult,
+    Div,
+}
+
+impl fmt::Display for Op {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Op::Add => write!(f, "+"),
+            Op::Sub => write!(f, "-"),
+            Op::Mult => write!(f, "*"),
+            Op::Div => write!(f, "/"),
+        }
+    }
 }
