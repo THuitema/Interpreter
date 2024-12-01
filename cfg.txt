@@ -1,9 +1,10 @@
 Expr -> AdditiveExpr
-AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr -Int | MultiplicativeExpr
+AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr TokUnaryMinus NumericalExpr | MultiplicativeExpr
     AdditiveOperator -> + | -
-MultiplicativeExpr -> PrimaryExpr MultiplicativeOperator MultiplicativeExpr | PrimaryExpr
+MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
     MultiplicativeOperator -> * | /
-PrimaryExpr -> Int | Float | ( Expr )
+UnaryExpr -> TokUnaryMinus NumericalExpr | NumericalExpr
+NumericalExpr -> Int | Float | ( Expr )
 
 
 Expr types:

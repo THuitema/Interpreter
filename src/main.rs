@@ -24,11 +24,18 @@ fn main() {
         
         println!("{input}");
         match lexer::tokenize(input) {
-            Ok(t) => 
-                {for token in t {
+            Ok(t) => {
+                println!("Tokens:");
+                for token in &t {
                     print!("{}, ", token)
                 }
                 println!("");
+                match parser::parse(&t) {
+                    Ok((tokens_res, expr)) => {
+                        println!("Parse Tree: \n{}", expr)
+                    },
+                    Err(e) => println!("{}", e)
+                }
                 },
             Err(e) => println!("{}", e)
         }

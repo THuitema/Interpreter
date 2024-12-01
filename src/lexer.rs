@@ -44,7 +44,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     // Non-negative Int
     else if let Some(capture) = re_pos_int.captures(input) {
       let capture_str = capture.get(0).unwrap().as_str();
-      tokens.push(Token::TokInt(capture_str.parse::<u32>().unwrap()));
+      tokens.push(Token::TokInt(capture_str.parse::<i32>().unwrap()));
       input = &input[capture_str.len()..];
     }
 
@@ -52,7 +52,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     else if let Some(capture) = re_neg_int.captures(input) {
       let capture_str = capture.get(2).unwrap().as_str();
       tokens.push(Token::TokUnaryMinus);
-      tokens.push(Token::TokInt(capture_str.parse::<u32>().unwrap()));
+      tokens.push(Token::TokInt(capture_str.parse::<i32>().unwrap()));
       input = &input[(capture_str.len() + 1)..]; // + 1 to account for minus sign
     }
 
