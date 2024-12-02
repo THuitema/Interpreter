@@ -26,10 +26,33 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
         Op::Add => Ok(Expr::Int(n1 + n2)),
         Op::Sub => Ok(Expr::Int(n1 - n2)),
         Op::Mult => Ok(Expr::Int(n1 * n2)),
-        Op::Div => Ok(Expr::Int(n1 / n2)),
+        Op::Div => Ok(Expr::Int(n1 / n2)), // CHECK FOR DIV BY 0
       }
-    }
-    // MATCH REST OF NUMERICAL TYPE COMBOS
+    },
+    (Expr::Float(n1), Expr::Int(n2)) => {
+      match &op {
+        Op::Add => Ok(Expr::Float(n1 + (*n2 as f32))),
+        Op::Sub => Ok(Expr::Float(n1 - (*n2 as f32))),
+        Op::Mult => Ok(Expr::Float(n1 * (*n2 as f32))),
+        Op::Div => Ok(Expr::Float(n1 / (*n2 as f32))), // CHECK FOR DIV BY 0
+      }
+    },
+    (Expr::Int(n1), Expr::Float(n2)) => {
+      match &op {
+        Op::Add => Ok(Expr::Float((*n1 as f32) + n2)),
+        Op::Sub => Ok(Expr::Float((*n1 as f32) - n2)),
+        Op::Mult => Ok(Expr::Float((*n1 as f32) * n2)),
+        Op::Div => Ok(Expr::Float((*n1 as f32) / n2)), // CHECK FOR DIV BY 0
+      }
+    },
+    (Expr::Float(n1), Expr::Float(n2)) => {
+      match &op {
+        Op::Add => Ok(Expr::Float(n1 + n2)),
+        Op::Sub => Ok(Expr::Float(n1 - n2)),
+        Op::Mult => Ok(Expr::Float(n1 * n2)),
+        Op::Div => Ok(Expr::Float(n1 / n2)), // CHECK FOR DIV BY 0
+      }
+    },
     _ => Err(format!("Invalid type(s) evaluating {} {} {}", left, op, right))
   }
 }
