@@ -1,6 +1,7 @@
 mod lexer;
 mod types;
 mod parser;
+mod interpreter;
 use std::io::{self, Write};
 
 fn main() {
@@ -22,17 +23,20 @@ fn main() {
             break;
         }
         
-        println!("{input}");
         match lexer::tokenize(input) {
             Ok(t) => {
-                println!("Tokens:");
+                print!("Tokens: ");
                 for token in &t {
                     print!("{}, ", token)
                 }
                 println!("");
                 match parser::parse(&t) {
                     Ok((tokens_res, expr)) => {
-                        println!("Parse Tree: \n{}", expr)
+                        print!("Parse Tree: {}\n", expr);
+                        match interpreter::eval_expr(&expr) {
+                            Ok(result) => println!("{}", result),
+                            Err(e) => println!("{}", e)
+                        }
                     },
                     Err(e) => println!("{}", e)
                 }
@@ -44,3 +48,4 @@ fn main() {
     println!("Goodbye...");
 
 }
+

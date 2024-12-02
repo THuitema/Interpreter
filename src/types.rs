@@ -38,8 +38,8 @@ pub enum Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Expr::Int(n) => write!(f, "Int({})", n),
-            Expr::Float(d) => write!(f, "Float({})", d),
+            Expr::Int(n) => write!(f, "{}", n),
+            Expr::Float(d) => write!(f, "{}", d),
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)
             }
