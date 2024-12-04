@@ -6,6 +6,8 @@ pub fn eval_expr(expr: &Expr) -> Result<Expr, String> {
     Expr::Int(n) => Ok(Expr::Int(*n)),
     // Float
     Expr::Float(d) => Ok(Expr::Float(*d)),
+    // Bool
+    Expr::Bool(b) => Ok(Expr::Bool(*b)),
     // Binop
     Expr::Binop(op, left, right) => {
       match (eval_expr(left), eval_expr(right)) {
@@ -53,6 +55,6 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
         Op::Div => Ok(Expr::Float(n1 / n2)), // CHECK FOR DIV BY 0
       }
     },
-    _ => Err(format!("Invalid type(s) evaluating {} {} {}", left, op, right))
+    _ => Err(format!("TypeError: Invalid type(s) evaluating {} {} {}", left, op, right))
   }
 }

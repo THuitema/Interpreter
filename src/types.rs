@@ -4,13 +4,14 @@ use std::fmt;
 pub enum Token {
     TokInt(i32),
     TokFloat(f32),
+    TokBool(bool),
     TokUnaryMinus,
     TokPlus,
     TokMinus,
     TokMult,
     TokDiv,
     TokLParen,
-    TokRParen,
+    TokRParen
 }
 
 impl fmt::Display for Token {
@@ -18,6 +19,7 @@ impl fmt::Display for Token {
         match self {
             Token::TokInt(n) => write!(f, "TokInt({})", n),
             Token::TokFloat(d) => write!(f, "TokFloat({})", d),
+            Token::TokBool(b) => write!(f, "TokBool({})", b),
             Token::TokUnaryMinus => write!(f, "TokUnaryMinus"),
             Token::TokPlus => write!(f, "TokPlus"),
             Token::TokMinus => write!(f, "TokMinus"),
@@ -32,6 +34,7 @@ impl fmt::Display for Token {
 pub enum Expr {
     Int(i32),
     Float(f32),
+    Bool(bool),
     Binop(Op, Box<Expr>, Box<Expr>),
 }
 
@@ -40,6 +43,7 @@ impl fmt::Display for Expr {
         match self {
             Expr::Int(n) => write!(f, "{}", n),
             Expr::Float(d) => write!(f, "{}", d),
+            Expr::Bool(b) => write!(f, "{}", b),
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)
             }

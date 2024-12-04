@@ -14,10 +14,10 @@ fn match_token(tokens: &Vec<Token>, token: &Token) -> Result<Vec<Token>, String>
       if first_token == token {
         Ok(tokens[1..].to_vec())
       } else {
-        Err(format!("Parsing error: trying to match token. Expected {}, but got {}", token, first_token))
+        Err(format!("SyntaxError: Expected {}, but got {}", token, first_token))
       }
     }, 
-    _ => Err(format!("Parsing error: trying to match token. Expected {}, but reached end of tokens", token))
+    _ => Err(format!("SyntaxError: Expected {}, but reached end of tokens", token))
   }
 }
 
@@ -47,7 +47,7 @@ fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
 
         // MultExpr TokUnaryMinus NumericalExpr
         Some(Token::TokUnaryMinus) => {
-          match parse_numerical(&match_token(&tokens2, &Token::TokUnaryMinus).unwrap()) {
+          match parse_primary(&match_token(&tokens2, &Token::TokUnaryMinus).unwrap()) {
             Ok((tokens3, num_expr)) => {
               return Ok((tokens3, Expr::Binop(Op::Sub, Box::from(mult_expr), Box::from(num_expr))))
             },
@@ -99,7 +99,7 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   match lookahead(&tokens) {
     // TokUnaryMinus NumericalExpr
     Some(Token::TokUnaryMinus) => {
-      match parse_numerical(&match_token(&tokens, &Token::TokUnaryMinus).unwrap()) {
+      match parse_primary(&match_token(&tokens, &Token::TokUnaryMinus).unwrap()) {
         Ok((tokens2, num_expr)) => {
           Ok((tokens2, Expr::Binop(Op::Mult, Box::from(Expr::Int(-1)), Box::from(num_expr))))
         },
@@ -108,12 +108,12 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
     },
 
     // NumericalExpr
-    _ => parse_numerical(tokens)
+    _ => parse_primary(tokens)
   }
   
 }
 
-fn parse_numerical(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   match lookahead(&tokens) {
     // Int
     Some(Token::TokInt(n)) => {
@@ -123,6 +123,11 @@ fn parse_numerical(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
     // Float
     Some(Token::TokFloat(d)) => {
       Ok((match_token(&tokens, &Token::TokFloat(*d)).unwrap(), Expr::Float(*d)))
+    },
+
+    // Bool
+    Some(Token::TokBool(b)) => {
+      Ok((match_token(&tokens, &Token::TokBool(*b)).unwrap(), Expr::Bool(*b)))
     },
 
     // (Expr) or error

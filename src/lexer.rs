@@ -10,6 +10,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_neg_int = Regex::new(r"^(-)(\d+)").unwrap();
   let re_pos_float = Regex::new(r"^(\d*\.\d+)").unwrap();
   let re_neg_float = Regex::new(r"^(-)(\d*\.\d+)").unwrap();
+  let re_bool = Regex::new(r"^(True|False)").unwrap();
   let re_plus = Regex::new(r"^(\+)").unwrap();
   let re_minus = Regex::new(r"^(-)").unwrap();
   let re_mult = Regex::new(r"^(\*)").unwrap();
@@ -54,6 +55,17 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       tokens.push(Token::TokUnaryMinus);
       tokens.push(Token::TokInt(capture_str.parse::<i32>().unwrap()));
       input = &input[(capture_str.len() + 1)..]; // + 1 to account for minus sign
+    }
+
+    // Bool
+    else if let Some(capture) = re_bool.captures(input) {
+      let capture_str = capture.get(0).unwrap().as_str();
+      if capture_str == "True" {
+        tokens.push(Token::TokBool(true));
+      } else {
+        tokens.push(Token::TokBool(false));
+      }
+      input = &input[capture_str.len()..];
     }
 
     // Plus

@@ -3,8 +3,8 @@ AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | Multiplicativ
     AdditiveOperator -> + | -
 MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
     MultiplicativeOperator -> * | /
-UnaryExpr -> TokUnaryMinus NumericalExpr | NumericalExpr
-NumericalExpr -> Int | Float | ( Expr )
+UnaryExpr -> TokUnaryMinus PrimaryExpr | PrimaryExpr
+PrimaryExpr -> Int | Float | Bool | ( Expr )
 
 
 Expr types:
