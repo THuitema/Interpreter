@@ -17,6 +17,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_div = Regex::new(r"^(/)").unwrap();
   let re_lparen = Regex::new(r"^(\()").unwrap();
   let re_rparen = Regex::new(r"^(\))").unwrap();
+  let re_or = Regex::new(r"^(or)").unwrap();
+  let re_and = Regex::new(r"^(and)").unwrap();
 
   let mut tokens = Vec::new();
 
@@ -102,6 +104,18 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     else if let Some(_) = re_rparen.captures(input) {
       tokens.push(Token::TokRParen);
       input = &input[1..];
+    }
+
+    // Or
+    else if let Some(_) = re_or.captures(input) {
+      tokens.push(Token::TokOr);
+      input = &input[2..];
+    }
+
+    // And
+    else if let Some(_) = re_and.captures(input) {
+      tokens.push(Token::TokAnd);
+      input = &input[3..];
     }
 
     // Invalid Input

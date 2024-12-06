@@ -1,9 +1,5 @@
 use crate::types::{Token, Expr, Op};
 
-pub fn parse(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
-  parse_additive(tokens)
-}
-
 fn lookahead(tokens: &Vec<Token>) -> Option<&Token> {
   tokens.get(0)
 }
@@ -19,6 +15,52 @@ fn match_token(tokens: &Vec<Token>, token: &Token) -> Result<Vec<Token>, String>
     }, 
     _ => Err(format!("SyntaxError: Expected {}, but reached end of tokens", token))
   }
+}
+
+pub fn parse(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+  parse_or(tokens)
+}
+
+fn parse_or(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+  match parse_and(tokens) {
+    Ok((tokens2, and_expr)) => {
+      match lookahead(&tokens2) {
+        Some(Token::TokOr) => {
+          match parse_or(&match_token(&tokens2, &Token::TokOr).unwrap()) {
+            Ok((tokens3, or_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::Or, Box::from(and_expr), Box::from(or_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        _ => Ok((tokens2, and_expr))
+      }
+    },
+    Err(e) => Err(e)
+  }
+}
+
+fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+  match parse_equality(tokens) {
+    Ok((tokens2, equality_expr)) => {
+      match lookahead(&tokens2) {
+        Some(Token::TokAnd) => {
+          match parse_and(&match_token(&tokens2, &Token::TokAnd).unwrap()) {
+            Ok((tokens3, and_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::And, Box::from(equality_expr), Box::from(and_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        _ => Ok((tokens2, equality_expr))
+      }
+    },
+    Err(e) => Err(e)
+  }
+}
+
+fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+  parse_additive(tokens)
 }
 
 fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {

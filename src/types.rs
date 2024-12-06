@@ -1,6 +1,9 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)] // Derive PartialEq for comparison
+#[derive(Debug, PartialEq, Clone)] 
+
+// TODO: create enum for Error codes/messages
+
 pub enum Token {
     TokInt(i32),
     TokFloat(f32),
@@ -11,7 +14,9 @@ pub enum Token {
     TokMult,
     TokDiv,
     TokLParen,
-    TokRParen
+    TokRParen,
+    TokOr,
+    TokAnd
 }
 
 impl fmt::Display for Token {
@@ -27,10 +32,13 @@ impl fmt::Display for Token {
             Token::TokDiv => write!(f, "TokDiv"),
             Token::TokLParen => write!(f, "TokLParen"),
             Token::TokRParen => write!(f, "TokRParen"),
+            Token::TokOr => write!(f, "TokOr"),
+            Token::TokAnd => write!(f, "TokAnd"),
         }
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Expr {
     Int(i32),
     Float(f32),
@@ -51,11 +59,15 @@ impl fmt::Display for Expr {
     }
 }
 
+
+#[derive(Clone, Debug)]
 pub enum Op {
     Add,
     Sub,
     Mult,
     Div,
+    Or,
+    And
 }
 
 impl fmt::Display for Op {
@@ -65,6 +77,8 @@ impl fmt::Display for Op {
             Op::Sub => write!(f, "-"),
             Op::Mult => write!(f, "*"),
             Op::Div => write!(f, "/"),
+            Op::Or => write!(f, "or"),
+            Op::And => write!(f, "and"),
         }
     }
 }

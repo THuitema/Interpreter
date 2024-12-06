@@ -1,4 +1,7 @@
-Expr -> AdditiveExpr
+Expr -> OrExpr
+OrExpr -> AndExpr "or" OrExpr | AndExpr
+AndExpr -> EqualityExpr "and" AndExpr | EqualityExpr
+EqualityExpr -> AdditiveExpr ***COMPLETE THIS FOR < > <= >= != AT LATER TIME 
 AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr TokUnaryMinus NumericalExpr | MultiplicativeExpr
     AdditiveOperator -> + | -
 MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
@@ -10,6 +13,7 @@ PrimaryExpr -> Int | Float | Bool | ( Expr )
 Expr types:
 Int of n
 Float of d
+Bool of b
 Binop of (op, expr, expr)
 - Add
 - Sub
