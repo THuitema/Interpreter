@@ -19,6 +19,12 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_rparen = Regex::new(r"^(\))").unwrap();
   let re_or = Regex::new(r"^(or)").unwrap();
   let re_and = Regex::new(r"^(and)").unwrap();
+  let re_double_equal = Regex::new(r"^(==)").unwrap();
+  let re_not_equal = Regex::new(r"^(!=)").unwrap();
+  let re_less = Regex::new(r"^(<)").unwrap();
+  let re_greater = Regex::new(r"^(>)").unwrap();
+  let re_less_equal = Regex::new(r"^(<=)").unwrap();
+  let re_greater_equal = Regex::new(r"^(>=)").unwrap();
 
   let mut tokens = Vec::new();
 
@@ -116,6 +122,41 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     else if let Some(_) = re_and.captures(input) {
       tokens.push(Token::TokAnd);
       input = &input[3..];
+    }
+    
+    // ==
+    else if let Some(_) = re_double_equal.captures(input) {
+      tokens.push(Token::TokDoubleEqual);
+      input = &input[2..];
+    }
+
+    // !=
+    else if let Some(_) = re_not_equal.captures(input) {
+      tokens.push(Token::TokNotEqual);
+      input = &input[2..];
+    }
+
+    // <=
+    else if let Some(_) = re_less_equal.captures(input) {
+      tokens.push(Token::TokLessEqual);
+      input = &input[2..];
+    }
+
+    // >=
+    else if let Some(_) = re_greater_equal.captures(input) {
+      tokens.push(Token::TokGreaterEqual);
+      input = &input[2..];
+    }
+
+    // <
+    else if let Some(_) = re_less.captures(input) {
+      tokens.push(Token::TokLess);
+      input = &input[1..];
+    }
+    // >
+    else if let Some(_) = re_greater.captures(input) {
+      tokens.push(Token::TokGreater);
+      input = &input[1..];
     }
 
     // Invalid Input

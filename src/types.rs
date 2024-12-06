@@ -16,7 +16,13 @@ pub enum Token {
     TokLParen,
     TokRParen,
     TokOr,
-    TokAnd
+    TokAnd,
+    TokDoubleEqual,
+    TokNotEqual,
+    TokLess,
+    TokGreater,
+    TokLessEqual,
+    TokGreaterEqual
 }
 
 impl fmt::Display for Token {
@@ -34,6 +40,12 @@ impl fmt::Display for Token {
             Token::TokRParen => write!(f, "TokRParen"),
             Token::TokOr => write!(f, "TokOr"),
             Token::TokAnd => write!(f, "TokAnd"),
+            Token::TokDoubleEqual => write!(f, "TokDoubleEqual"),
+            Token::TokNotEqual => write!(f, "TokNotEqual"),
+            Token::TokLess => write!(f, "TokLess"),
+            Token::TokGreater => write!(f, "TokGreater"),
+            Token::TokLessEqual => write!(f, "TokLessEqual"),
+            Token::TokGreaterEqual => write!(f, "TokGreaterEqual"),
         }
     }
 }
@@ -67,7 +79,13 @@ pub enum Op {
     Mult,
     Div,
     Or,
-    And
+    And,
+    Equal,
+    NotEqual,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual
 }
 
 impl fmt::Display for Op {
@@ -79,6 +97,12 @@ impl fmt::Display for Op {
             Op::Div => write!(f, "/"),
             Op::Or => write!(f, "or"),
             Op::And => write!(f, "and"),
+            Op::Equal => write!(f, "=="),
+            Op::NotEqual => write!(f, "!="),
+            Op::Less => write!(f, "<"),
+            Op::Greater => write!(f, ">"),
+            Op::LessEqual => write!(f, "<="),
+            Op::GreaterEqual => write!(f, ">="),
         }
     }
 }

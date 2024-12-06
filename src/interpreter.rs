@@ -67,7 +67,7 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
     // Or
     Op::Or => {
       match expr_to_bool(left) {
-        Ok(Expr::Bool(b)) => if !b {Ok(right.clone())} else {Ok(left.clone())},
+        Ok(b) => if !b {Ok(right.clone())} else {Ok(left.clone())},
         Err(e) => Err(e),
         _ => Err(format!("TypeError: Invalid expression {} in \"or\" statement", left))
       }
@@ -75,21 +75,101 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
     // And
     Op::And => {
       match expr_to_bool(left) {
-        Ok(Expr::Bool(b)) => if !b {Ok(left.clone())} else {Ok(right.clone())},
+        Ok(b) => if !b {Ok(left.clone())} else {Ok(right.clone())},
         Err(e) => Err(e),
         _ => Err(format!("TypeError: Invalid expression {} in \"and\" statement", left))
       }
     },
+    // Equals
+    Op::Equal => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 == n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) == *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 == (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 == n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 == expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 == expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} == {}", left, right))
+      }
+    }
+    // Not Equals
+    Op::NotEqual => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 != n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) != *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 != (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 != n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 != expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 != expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} != {}", left, right))
+      }
+    }
+    // Less than
+    Op::Less => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 < n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) < *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 < (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 < n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 < expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 < expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} < {}", left, right))
+      }
+    }
+    // Greater than
+    Op::Greater => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 > n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) > *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 > (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 > n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 > expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 > expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} > {}", left, right))
+      }
+    }
+    // Less than or equal
+    Op::LessEqual => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 <= n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) <= *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 <= (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 <= n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 <= expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 <= expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} <= {}", left, right))
+      }
+    }
+    // Greater than or equal
+    Op::GreaterEqual => {
+      match (&left, &right) {
+        (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 >= n2)),
+        (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Bool((*n1 as f32) >= *n2)),
+        (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Bool(*n1 >= (*n2 as f32))),
+        (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Bool(n1 >= n2)),
+        (Expr::Bool(b1), _) => Ok(Expr::Bool(*b1 >= expr_to_bool(right).unwrap())),
+        (_, Expr::Bool(b2)) => Ok(Expr::Bool(*b2 >= expr_to_bool(left).unwrap())),
+        _ => Err(format!("TypeError: Invalid type(s) evaluating {} >= {}", left, right))
+      }
+    }
     _ => Err(format!("TypeError: Invalid type(s) evaluating {} {} {}", left, op, right))
   }
 }
 
-fn expr_to_bool(expr: &Expr) -> Result<Expr, String> {
+fn expr_to_bool(expr: &Expr) -> Result<bool, String> {
   match expr {
-    Expr::Bool(b) => Ok(Expr::Bool(*b)),
-    Expr::Int(n) => if *n == 0 {Ok(Expr::Bool(false))} else {Ok(Expr::Bool(true))},
-    Expr::Float(n) => if *n == 0.0 {Ok(Expr::Bool(false))} else {Ok(Expr::Bool(true))},
-    _ => Err(format!("TypeError: Trying to convert {} to bool", {expr}))
+    Expr::Bool(b) => Ok(*b),
+    Expr::Int(n) => if *n == 0 {Ok(false)} else {Ok(true)},
+    Expr::Float(n) => if *n == 0.0 {Ok(false)} else {Ok(true)},
+    _ => Err(format!("TypeError: Trying to convert {} to bool", expr))
   }
 }
+
+// fn bool_to_int(expr: &Expr) -> Result<Expr, String> {
+//   match expr {
+//     Expr::Bool(true) => Ok(Expr::Int(1)),
+//     Expr::Bool(false) => Ok(Expr::Int(0)),
+//     _ => Err(format!("TypeError: Trying to convert bool {} to int", expr))
+//   }
+// }
 

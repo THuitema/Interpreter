@@ -25,6 +25,7 @@ fn parse_or(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   match parse_and(tokens) {
     Ok((tokens2, and_expr)) => {
       match lookahead(&tokens2) {
+        // AndExpr or OrExpr
         Some(Token::TokOr) => {
           match parse_or(&match_token(&tokens2, &Token::TokOr).unwrap()) {
             Ok((tokens3, or_expr)) => {
@@ -33,6 +34,7 @@ fn parse_or(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
             Err(e) => Err(e)
           }
         },
+        // AndExpr
         _ => Ok((tokens2, and_expr))
       }
     },
@@ -44,6 +46,7 @@ fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   match parse_equality(tokens) {
     Ok((tokens2, equality_expr)) => {
       match lookahead(&tokens2) {
+        // EqualityExpr and AndExpr
         Some(Token::TokAnd) => {
           match parse_and(&match_token(&tokens2, &Token::TokAnd).unwrap()) {
             Ok((tokens3, and_expr)) => {
@@ -52,6 +55,7 @@ fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
             Err(e) => Err(e)
           }
         },
+        // EqualityExpr
         _ => Ok((tokens2, equality_expr))
       }
     },
@@ -60,7 +64,81 @@ fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
 }
 
 fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
-  parse_additive(tokens)
+  match parse_relational(tokens) {
+    Ok((tokens2, relational_expr)) => {
+      match lookahead(&tokens2) {
+        // RelationalExpr == EqualityExpr
+        Some(Token::TokDoubleEqual) => {
+          match parse_equality(&match_token(&tokens2, &Token::TokDoubleEqual).unwrap()) {
+            Ok((tokens3, equality_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::Equal, Box::from(relational_expr), Box::from(equality_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // RelationalExpr != EqualityExpr
+        Some(Token::TokNotEqual) => {
+          match parse_equality(&match_token(&tokens2, &Token::TokNotEqual).unwrap()) {
+            Ok((tokens3, equality_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::NotEqual, Box::from(relational_expr), Box::from(equality_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // RelationalExpr
+        _ => Ok((tokens2, relational_expr))
+      }
+    },
+    Err(e) => Err(e)
+  }
+}
+
+fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+  match parse_additive(tokens) {
+    Ok((tokens2, additive_expr)) => {
+      match lookahead(&tokens2) {
+        // AdditiveExpr < RelationalExpr
+        Some(Token::TokLess) => {
+          match parse_relational(&match_token(&tokens2, &Token::TokLess).unwrap()) {
+            Ok((tokens3, relational_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::Less, Box::from(additive_expr), Box::from(relational_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // AdditiveExpr > RelationalExpr
+        Some(Token::TokGreater) => {
+          match parse_relational(&match_token(&tokens2, &Token::TokGreater).unwrap()) {
+            Ok((tokens3, relational_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::Greater, Box::from(additive_expr), Box::from(relational_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // AdditiveExpr <= RelationalExpr
+        Some(Token::TokLessEqual) => {
+          match parse_relational(&match_token(&tokens2, &Token::TokLessEqual).unwrap()) {
+            Ok((tokens3, relational_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::LessEqual, Box::from(additive_expr), Box::from(relational_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // AdditiveExpr >= RelationalExpr
+        Some(Token::TokGreaterEqual) => {
+          match parse_relational(&match_token(&tokens2, &Token::TokGreaterEqual).unwrap()) {
+            Ok((tokens3, relational_expr)) => {
+              Ok((tokens3, Expr::Binop(Op::GreaterEqual, Box::from(additive_expr), Box::from(relational_expr))))
+            },
+            Err(e) => Err(e)
+          }
+        },
+        // AdditiveExpr
+        _ => Ok((tokens2, additive_expr))
+      }
+    },
+    Err(e) => Err(e)
+  }
 }
 
 fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
