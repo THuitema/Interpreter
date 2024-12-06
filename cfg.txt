@@ -1,7 +1,10 @@
 Expr -> OrExpr
 OrExpr -> AndExpr "or" OrExpr | AndExpr
 AndExpr -> EqualityExpr "and" AndExpr | EqualityExpr
-EqualityExpr -> AdditiveExpr ***COMPLETE THIS FOR < > <= >= != AT LATER TIME 
+EqualityExpr -> RelationalExpr EqualityOperator EqualityExpr | RelationalExpr
+    EqualityOperator -> == | !=
+RelationalExpr -> AdditiveExpr RelationalOperator RelationalExpr | AdditiveExpr ***COMPLETE THIS FOR < > <= >= != AT LATER TIME 
+    RelationalOperator -> < | > | <= | >=
 AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr TokUnaryMinus NumericalExpr | MultiplicativeExpr
     AdditiveOperator -> + | -
 MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
