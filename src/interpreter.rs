@@ -33,6 +33,8 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
         (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Float((*n1 as f32) + n2)),
         (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Float(n1 + (*n2 as f32))),
         (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Float(n1 + n2)),
+        // String concatenation
+        (Expr::String(s1), Expr::String(s2)) => {Ok(Expr::String(s1.clone() + s2))},
         _ => Err(format!("TypeError: Invalid type(s) evaluating {} {} {}", left, op, right))
       }
     },
@@ -53,6 +55,15 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
         (Expr::Int(n1), Expr::Float(n2)) => Ok(Expr::Float((*n1 as f32) * n2)),
         (Expr::Float(n1), Expr::Int(n2)) => Ok(Expr::Float(n1 * (*n2 as f32))),
         (Expr::Float(n1), Expr::Float(n2)) => Ok(Expr::Float(n1 * n2)),
+        // String multiplication
+        (Expr::String(s), Expr::Int(n)) => {
+          let mut concat = String::new();
+          for _ in 0..*n {
+            concat.push_str(s);
+          }
+          Ok(Expr::String(concat))
+        },
+
         _ => Err(format!("TypeError: Invalid type(s) evaluating {} {} {}", left, op, right))
       }
     },
