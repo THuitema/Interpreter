@@ -25,7 +25,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_greater = Regex::new(r"^(>)").unwrap();
   let re_less_equal = Regex::new(r"^(<=)").unwrap();
   let re_greater_equal = Regex::new(r"^(>=)").unwrap();
-
+  let re_string = Regex::new(r#"^(\".*\"|'[^\"]*')"#).unwrap();
   let mut tokens = Vec::new();
 
   while input.len() > 0 {
@@ -63,6 +63,16 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       tokens.push(Token::TokUnaryMinus);
       tokens.push(Token::TokInt(capture_str.parse::<i32>().unwrap()));
       input = &input[(capture_str.len() + 1)..]; // + 1 to account for minus sign
+    }
+
+    // String
+    else if let Some(capture) = re_string.captures(input) {
+      let capture_str = capture.get(0).unwrap().as_str();
+      let mut chars = capture_str.chars(); // To remove quotes surrounding string
+      chars.next();
+      chars.next_back();
+      tokens.push(Token::TokString(String::from(chars.as_str())));
+      input = &input[(capture_str.len())..];
     }
 
     // Bool

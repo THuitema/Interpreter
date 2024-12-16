@@ -6,6 +6,8 @@ pub fn eval_expr(expr: &Expr) -> Result<Expr, String> {
     Expr::Int(n) => Ok(Expr::Int(*n)),
     // Float
     Expr::Float(d) => Ok(Expr::Float(*d)),
+    // String
+    Expr::String(s) => Ok(Expr::String(s.clone())),
     // Bool
     Expr::Bool(b) => Ok(Expr::Bool(*b)),
     // Binop

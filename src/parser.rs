@@ -245,6 +245,11 @@ fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
       Ok((match_token(&tokens, &Token::TokFloat(*d)).unwrap(), Expr::Float(*d)))
     },
 
+    // String
+    Some(Token::TokString(s)) => {
+      Ok((match_token(&tokens, &Token::TokString(s.clone())).unwrap(), Expr::String(s.clone())))
+    },
+
     // Bool
     Some(Token::TokBool(b)) => {
       Ok((match_token(&tokens, &Token::TokBool(*b)).unwrap(), Expr::Bool(*b)))
