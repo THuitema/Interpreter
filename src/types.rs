@@ -24,6 +24,7 @@ pub enum Token {
     TokGreater,
     TokLessEqual,
     TokGreaterEqual,
+    TokVar(String),
 }
 
 impl fmt::Display for Token {
@@ -48,6 +49,7 @@ impl fmt::Display for Token {
             Token::TokGreater => write!(f, "TokGreater"),
             Token::TokLessEqual => write!(f, "TokLessEqual"),
             Token::TokGreaterEqual => write!(f, "TokGreaterEqual"),
+            Token::TokVar(s) => write!(f, "TokVar({})", s),
         }
     }
 }
@@ -58,6 +60,7 @@ pub enum Expr {
     Float(f32),
     Bool(bool),
     String(String),
+    Var(String),
     Binop(Op, Box<Expr>, Box<Expr>),
 }
 
@@ -79,6 +82,7 @@ impl fmt::Display for Expr {
             Expr::Float(d) => write!(f, "{}", d),
             Expr::String(s) => write!(f, "\"{}\"", s),
             Expr::Bool(b) => if *b {write!(f, "True")} else {write!(f, "False")},
+            Expr::Var(v) => write!(f, "{}", v),
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)
             }

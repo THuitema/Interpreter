@@ -10,15 +10,15 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_neg_int = Regex::new(r"^(-)(\d+)").unwrap();
   let re_pos_float = Regex::new(r"^(\d*\.\d+)").unwrap();
   let re_neg_float = Regex::new(r"^(-)(\d*\.\d+)").unwrap();
-  let re_bool = Regex::new(r"^(True|False)").unwrap();
+  let re_bool = Regex::new(r"^(True|False)$").unwrap();
   let re_plus = Regex::new(r"^(\+)").unwrap();
   let re_minus = Regex::new(r"^(-)").unwrap();
   let re_mult = Regex::new(r"^(\*)").unwrap();
   let re_div = Regex::new(r"^(/)").unwrap();
   let re_lparen = Regex::new(r"^(\()").unwrap();
   let re_rparen = Regex::new(r"^(\))").unwrap();
-  let re_or = Regex::new(r"^(or)").unwrap();
-  let re_and = Regex::new(r"^(and)").unwrap();
+  let re_or = Regex::new(r"^(or)$").unwrap();
+  let re_and = Regex::new(r"^(and)$").unwrap();
   let re_double_equal = Regex::new(r"^(==)").unwrap();
   let re_not_equal = Regex::new(r"^(!=)").unwrap();
   let re_less = Regex::new(r"^(<)").unwrap();
@@ -26,6 +26,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_less_equal = Regex::new(r"^(<=)").unwrap();
   let re_greater_equal = Regex::new(r"^(>=)").unwrap();
   let re_string = Regex::new(r#"^("[^"]*"|'[^"']*')"#).unwrap();
+  let re_variable = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+  let re_assignment = Regex::new(r"^=");
+  // if
+  // elif
+  // else
+  // :
+  // not
   let mut tokens = Vec::new();
 
   while input.len() > 0 {
@@ -75,17 +82,6 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       input = &input[(capture_str.len())..];
     }
 
-    // Bool
-    else if let Some(capture) = re_bool.captures(input) {
-      let capture_str = capture.get(0).unwrap().as_str();
-      if capture_str == "True" {
-        tokens.push(Token::TokBool(true));
-      } else {
-        tokens.push(Token::TokBool(false));
-      }
-      input = &input[capture_str.len()..];
-    }
-
     // Plus
     else if let Some(_) = re_plus.captures(input) {
       tokens.push(Token::TokPlus);
@@ -121,18 +117,6 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       tokens.push(Token::TokRParen);
       input = &input[1..];
     }
-
-    // Or
-    else if let Some(_) = re_or.captures(input) {
-      tokens.push(Token::TokOr);
-      input = &input[2..];
-    }
-
-    // And
-    else if let Some(_) = re_and.captures(input) {
-      tokens.push(Token::TokAnd);
-      input = &input[3..];
-    }
     
     // ==
     else if let Some(_) = re_double_equal.captures(input) {
@@ -167,6 +151,40 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     else if let Some(_) = re_greater.captures(input) {
       tokens.push(Token::TokGreater);
       input = &input[1..];
+    }
+
+    // Protected keywords and variable names
+    else if let Some(capture) = re_variable.captures(input) {
+      let capture_str = capture.get(0).unwrap().as_str();
+
+      // Bool
+      if let Some(_) = re_bool.captures(capture_str) {
+        if capture_str == "True" {
+          tokens.push(Token::TokBool(true));
+        } else {
+          tokens.push(Token::TokBool(false));
+        }
+        input = &input[capture_str.len()..];
+      }
+
+      // And
+      else if let Some(_) = re_and.captures(capture_str) {
+        tokens.push(Token::TokAnd);
+        input = &input[3..];
+      }
+
+      // Or
+      else if let Some(_) = re_or.captures(capture_str) {
+        tokens.push(Token::TokOr);
+        input = &input[2..];
+      }
+
+      // Variable name
+      else {
+        tokens.push(Token::TokVar(String::from(capture_str)));
+        input = &input[capture_str.len()..];
+      }
+
     }
 
     // Invalid Input
