@@ -5,7 +5,7 @@ mod interpreter;
 use std::io::{self, Write};
 
 fn main() {
-    println!("Welcome to my interpreter!");
+    println!("TomPython Version 1.0");
 
     let stdin = io::stdin();
 

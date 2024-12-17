@@ -32,7 +32,7 @@ impl fmt::Display for Token {
             Token::TokInt(n) => write!(f, "TokInt({})", n),
             Token::TokFloat(d) => write!(f, "TokFloat({})", d),
             Token::TokBool(b) => write!(f, "TokBool({})", b),
-            Token::TokString(s) => write!(f, "TokString('{}')", s),
+            Token::TokString(s) => write!(f, "TokString(\"{}\")", s),
             Token::TokUnaryMinus => write!(f, "TokUnaryMinus"),
             Token::TokPlus => write!(f, "TokPlus"),
             Token::TokMinus => write!(f, "TokMinus"),
@@ -61,12 +61,23 @@ pub enum Expr {
     Binop(Op, Box<Expr>, Box<Expr>),
 }
 
+impl Expr {
+    pub fn to_bool(&self) -> Result<bool, String> {
+        match self {
+            Expr::Bool(b) => Ok(*b),
+            Expr::Int(n) => if *n == 0 {Ok(false)} else {Ok(true)},
+            Expr::Float(n) => if *n == 0.0 {Ok(false)} else {Ok(true)},
+            _ => Err(format!("TypeError: Cannot convert type to bool"))
+        }
+    }
+}
+
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expr::Int(n) => write!(f, "{}", n),
             Expr::Float(d) => write!(f, "{}", d),
-            Expr::String(s) => write!(f, "'{}'", s),
+            Expr::String(s) => write!(f, "\"{}\"", s),
             Expr::Bool(b) => if *b {write!(f, "True")} else {write!(f, "False")},
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)

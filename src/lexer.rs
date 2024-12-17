@@ -25,7 +25,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_greater = Regex::new(r"^(>)").unwrap();
   let re_less_equal = Regex::new(r"^(<=)").unwrap();
   let re_greater_equal = Regex::new(r"^(>=)").unwrap();
-  let re_string = Regex::new(r#"^(\".*\"|'[^\"]*')"#).unwrap();
+  let re_string = Regex::new(r#"^("[^"]*"|'[^"']*')"#).unwrap();
   let mut tokens = Vec::new();
 
   while input.len() > 0 {
