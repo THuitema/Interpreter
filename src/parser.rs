@@ -4,6 +4,10 @@ fn lookahead(tokens: &Vec<Token>) -> Option<&Token> {
   tokens.get(0)
 }
 
+fn lookahead_at(tokens: &Vec<Token>, index: usize) -> Option<&Token> {
+  tokens.get(index)
+}
+
 fn match_token(tokens: &Vec<Token>, token: &Token) -> Result<Vec<Token>, String> {
   match tokens.get(0) {
     Some(first_token) => {
@@ -18,7 +22,19 @@ fn match_token(tokens: &Vec<Token>, token: &Token) -> Result<Vec<Token>, String>
 }
 
 pub fn parse(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
-  parse_or(tokens)
+  match (lookahead(tokens), lookahead_at(tokens, 1)) {
+    // VarAssignExpr
+    (Some(Token::TokVar(v)), Some(Token::TokAssign)) => parse_var_assign(&match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), v),
+    // OrExpr
+    _ => parse_or(tokens)
+  }
+}
+
+fn parse_var_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, Expr), String> {
+  match parse_or(&match_token(&tokens, &Token::TokAssign).unwrap()) {
+    Ok((tokens2, e)) => Ok((tokens2, Expr::VarAssign(var_name.clone(), Box::from(e)))),
+    Err(e) => Err(e)
+  }
 }
 
 fn parse_or(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
@@ -255,13 +271,18 @@ fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
       Ok((match_token(&tokens, &Token::TokBool(*b)).unwrap(), Expr::Bool(*b)))
     },
 
-    // (Expr) or error
+    // Var
+    Some(Token::TokVar(v)) => {
+      Ok((match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), Expr::Var(v.clone())))
+    },
+
+    // (OrExpr) or error
     _ => {
       // Match opening parenthesis
       match match_token(&tokens, &Token::TokLParen) {
         Ok(tokens2) => {
           // Parse expression inside parentheses
-          match parse(&tokens2) {
+          match parse_or(&tokens2) {
             Ok((tokens3, expr)) => {
               // Match closing parenthesis
               match match_token(&tokens3, &Token::TokRParen) {

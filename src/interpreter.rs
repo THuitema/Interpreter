@@ -1,18 +1,61 @@
-use crate::types::{Expr, Op};
+use crate::types::{Expr, Op, Environment};
 
-pub fn eval_expr(expr: &Expr) -> Result<Expr, String> {
+fn env_get(env: &Environment, target: &String) -> Option<Expr> {
+  env.iter().find(|(key, _)| key == target).map(|(_, expr)| expr.clone())
+}
+
+fn env_insert(env: &mut Environment, name: &String, value: &Expr) {
+  // Search for existing name
+  for (key, val) in env.iter_mut() {
+    if key == name {
+      *val = value.clone();
+      return;
+    }
+  }
+
+  env.push((name.clone(), value.clone()));
+}
+
+pub fn eval_expr(expr: &Expr, env: &mut Environment) -> Result<Expr, String> {
   match expr {
     // Int
     Expr::Int(n) => Ok(Expr::Int(*n)),
+
     // Float
     Expr::Float(d) => Ok(Expr::Float(*d)),
+
     // String
     Expr::String(s) => Ok(Expr::String(s.clone())),
+
     // Bool
     Expr::Bool(b) => Ok(Expr::Bool(*b)),
+
+    // Var
+    Expr::Var(v) => {
+      match env_get(env, v) {
+        Some(e) => eval_expr(&e, env),
+        None => Err(format!("NameError: name {} is not defined", v))
+      }
+    }
+    
+    // VarAssign
+    // *** In the future, might want to change return type of interpreter to something different than Expr
+    // *** Since there are statements and expressions in Python. Variable assignments like this technically 
+    // *** Don't return anything in Python
+    Expr::VarAssign(v, e ) => {
+      match eval_expr(e, env) {
+        Ok(eval) => {
+          // replace env with new value is name already exists, otherwise push new entry to end
+          env_insert(env, v, &eval);
+          Ok(eval)
+        },
+        Err(e) => Err(e)
+      }
+    }
+
     // Binop
     Expr::Binop(op, left, right) => {
-      match (eval_expr(left), eval_expr(right)) {
+      match (eval_expr(left, env), eval_expr(right, env)) {
         (Ok(left_eval), Ok(right_eval)) => {
           eval_binop(op, &left_eval, &right_eval)
         },
@@ -117,7 +160,7 @@ fn eval_binop(op: &Op, left: &Expr, right: &Expr) -> Result<Expr, String> {
       }
     }
 
-    // Less than (could add string comparisons)
+    // Less than
     Op::Less => {
       match (&left, &right) {
         (Expr::Int(n1), Expr::Int(n2)) => Ok(Expr::Bool(n1 < n2)),

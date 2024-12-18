@@ -25,6 +25,7 @@ pub enum Token {
     TokLessEqual,
     TokGreaterEqual,
     TokVar(String),
+    TokAssign,
 }
 
 impl fmt::Display for Token {
@@ -50,6 +51,7 @@ impl fmt::Display for Token {
             Token::TokLessEqual => write!(f, "TokLessEqual"),
             Token::TokGreaterEqual => write!(f, "TokGreaterEqual"),
             Token::TokVar(s) => write!(f, "TokVar({})", s),
+            Token::TokAssign => write!(f, "TokAssign")
         }
     }
 }
@@ -61,6 +63,7 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
+    VarAssign(String, Box<Expr>),
     Binop(Op, Box<Expr>, Box<Expr>),
 }
 
@@ -83,6 +86,7 @@ impl fmt::Display for Expr {
             Expr::String(s) => write!(f, "\"{}\"", s),
             Expr::Bool(b) => if *b {write!(f, "True")} else {write!(f, "False")},
             Expr::Var(v) => write!(f, "{}", v),
+            Expr::VarAssign(v, e) => write!(f, "{} = {}", v, e),
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)
             }
@@ -124,4 +128,13 @@ impl fmt::Display for Op {
             Op::GreaterEqual => write!(f, ">="),
         }
     }
+}
+
+pub type Environment = Vec<(String, Expr)>;
+pub fn print_env(env: &Environment) {
+    print!("Env: [");
+    for (v, e) in env {
+        print!("{} = {}, ", v, e);
+    }
+    println!("]");
 }

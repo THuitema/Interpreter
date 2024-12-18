@@ -4,10 +4,13 @@ mod parser;
 mod interpreter;
 use std::io::{self, Write};
 
+use types::{print_env, Environment};
+
 fn main() {
     println!("TomPython Version 1.0");
 
     let stdin = io::stdin();
+    let mut env: Environment = Vec::new();
 
     loop {
         print!(">>> ");
@@ -23,7 +26,7 @@ fn main() {
             break;
         }
         
-        execute(input);
+        execute(input, &mut env);
         
     }
 
@@ -31,7 +34,7 @@ fn main() {
 
 }
 
-fn execute(input: &str) {
+fn execute(input: &str, env: &mut Environment) {
     match lexer::tokenize(input) {
         Ok(t) => {
             // print!("Tokens: ");
@@ -43,7 +46,7 @@ fn execute(input: &str) {
                 Ok((tokens_res, expr)) => {
                     match tokens_res[..] {
                         [] => {
-                            match interpreter::eval_expr(&expr) {
+                            match interpreter::eval_expr(&expr, env) {
                                 Ok(result) => println!("{}", result),
                                 Err(e) => println!("{}", e)
                             }
@@ -51,7 +54,8 @@ fn execute(input: &str) {
                         _ => println!("SyntaxError: invalid syntax")
                         
                     }
-                    // print!("Parse Tree: {}\n", expr);
+                    print!("Parse Tree: {}\n", expr);
+                    print_env(env);
                     
                 },
                 Err(e) => println!("{}", e)

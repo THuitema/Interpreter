@@ -1,6 +1,7 @@
-Expr -> OrExpr
-OrExpr -> AndExpr "or" OrExpr | AndExpr
-AndExpr -> EqualityExpr "and" AndExpr | EqualityExpr
+Expr -> VarAssignExpr | OrExpr 
+VarAssignExpr -> TokVar = OrExpr
+OrExpr -> AndExpr TokOr OrExpr | AndExpr
+AndExpr -> EqualityExpr TokAnd AndExpr | EqualityExpr
 EqualityExpr -> RelationalExpr EqualityOperator EqualityExpr | RelationalExpr
     EqualityOperator -> == | !=
 RelationalExpr -> AdditiveExpr RelationalOperator RelationalExpr | AdditiveExpr ***COMPLETE THIS FOR < > <= >= != AT LATER TIME 
@@ -10,7 +11,7 @@ AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | Multiplicativ
 MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
     MultiplicativeOperator -> * | /
 UnaryExpr -> TokUnaryMinus PrimaryExpr | PrimaryExpr
-PrimaryExpr -> Int | Float | Bool | ( Expr )
+PrimaryExpr -> TokInt | TokFloat | TokBool | TokVar | ( OrExpr )
 
 
 Expr types:

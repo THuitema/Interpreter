@@ -27,7 +27,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_greater_equal = Regex::new(r"^(>=)").unwrap();
   let re_string = Regex::new(r#"^("[^"]*"|'[^"']*')"#).unwrap();
   let re_variable = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
-  let re_assignment = Regex::new(r"^=");
+  let re_assignment = Regex::new(r"^=").unwrap();
   // if
   // elif
   // else
@@ -150,6 +150,12 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     // >
     else if let Some(_) = re_greater.captures(input) {
       tokens.push(Token::TokGreater);
+      input = &input[1..];
+    }
+
+    // =
+    else if let Some(_) = re_assignment.captures(input) {
+      tokens.push(Token::TokAssign);
       input = &input[1..];
     }
 
