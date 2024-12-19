@@ -64,7 +64,6 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32) -> Result<(Vec<Token>, E
             Ok((body_tokens, indentation)) => {
               let original_indent = *prev_indent;
               *prev_indent = indentation;
-
               match lookahead(&body_tokens) {
                 // Get indent for first line of body
                 Some(Token::TokIndent(n)) => {
@@ -82,7 +81,7 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32) -> Result<(Vec<Token>, E
           }
         },
         Err(e) => Err(e),
-        _ => Err("SyntaxError: expected new line after ':'".to_string()) // more tokens after :
+        _ => Err("SyntaxError: expected new line after ':'".to_string()) // if more tokens after :
       }
     },
     Err(e) => Err(e)
@@ -93,27 +92,51 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, original_indent: i32, 
   match lookahead(tokens) {
     // Correct unindent to exit body 
     Some(&Token::TokDedent(n)) if n == original_indent => Ok((match_token(&tokens, &Token::TokDedent(original_indent)).unwrap(), body_contents.to_vec())),
-
+    Some(&Token::TokDedent(n)) if n < original_indent => {
+      let mut tokens2 = match_token(&tokens, &Token::TokDedent(n)).unwrap();
+      tokens2.insert(0, Token::TokDedent(n));
+      Ok((tokens2, body_contents.to_vec()))
+    }
+    
     // Incorrect unindent
     Some(&Token::TokDedent(n)) => Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n)),
 
     _ => {
       // Parse current line
       match parse(tokens, prev_indent) {
-        Ok((tokens2, expr)) if tokens2.is_empty() => {
-          body_contents.push(expr);
+        Ok((tokens2, expr)) => {
+          if tokens2.is_empty() {
+            body_contents.push(expr);
 
-          // Get next line and make recursive call
-          match read_body_line(prev_indent) {
-            Ok((next_line, indentation)) => {
-              *prev_indent = indentation;
-              return parse_body(&next_line, prev_indent, original_indent, body_contents)
-            },
-            Err(e) => Err(e)
-          }
+            // Get next line and make recursive call
+            match read_body_line(prev_indent) {
+              Ok((next_line, indentation)) => {
+                *prev_indent = indentation;
+                return parse_body(&next_line, prev_indent, original_indent, body_contents)
+              },
+              Err(e) => Err(e)
+            }
+          } else {
+            body_contents.push(expr);
+
+            // Check if still unindenting from previous line (i.e. escaping multiple closures at same time)
+            if let Some(&Token::TokDedent(n)) = lookahead(&tokens2) {
+              if n == original_indent {
+                Ok((match_token(&tokens2, &Token::TokDedent(original_indent)).unwrap(), body_contents.to_vec()))
+              } else if n < original_indent {
+                  let mut tokens3 = match_token(&tokens2, &Token::TokDedent(n)).unwrap();
+                  tokens3.insert(0, Token::TokDedent(n));
+                  Ok((tokens3, body_contents.to_vec()))
+              }
+              else {
+                Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n))
+              }
+            } else {
+              Err(format!("SyntaxError: something else "))
+            }
+          } 
         },
-        Err(e) => Err(e),
-        _ => Err("SyntaxError: invalid syntax".to_string())
+        Err(e) => Err(e)
       }
     }
   }

@@ -39,11 +39,11 @@ fn execute(input: &str, env: &mut Environment) {
 
     match lexer::tokenize(input, &mut prev_indent) {
         Ok((t, indentation)) => {
-            print!("Tokens: ");
-            for token in &t {
-                print!("{}, ", token)
-            }
-            println!("");
+            // print!("Tokens: ");
+            // for token in &t {
+            //     print!("{}, ", token)
+            // }
+            // println!("");
             prev_indent = indentation;
             match parser::parse(&t, &mut prev_indent) {
                 Ok((tokens_res, expr)) => {
@@ -58,7 +58,7 @@ fn execute(input: &str, env: &mut Environment) {
                         
                     // }
                     print!("Parse Tree: {}\n", expr);
-                    print_env(env);
+                    // print_env(env);
                     
                 },
                 Err(e) => println!("{}", e)
