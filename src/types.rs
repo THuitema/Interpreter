@@ -26,6 +26,12 @@ pub enum Token {
     TokGreaterEqual,
     TokVar(String),
     TokAssign,
+    TokIf,
+    TokElif,
+    TokElse,
+    TokColon,
+    TokIndent(i32),
+    TokDedent(i32)
 }
 
 impl fmt::Display for Token {
@@ -51,7 +57,13 @@ impl fmt::Display for Token {
             Token::TokLessEqual => write!(f, "TokLessEqual"),
             Token::TokGreaterEqual => write!(f, "TokGreaterEqual"),
             Token::TokVar(s) => write!(f, "TokVar({})", s),
-            Token::TokAssign => write!(f, "TokAssign")
+            Token::TokAssign => write!(f, "TokAssign"),
+            Token::TokIf => write!(f, "TokIf"),
+            Token::TokElif => write!(f, "TokElif"),
+            Token::TokElse => write!(f, "TokElse"),
+            Token::TokColon => write!(f, "TokColon"),
+            Token::TokIndent(n) => write!(f, "TokIndent({})", n),
+            Token::TokDedent(n) => write!(f, "TokDedent({})", n),
         }
     }
 }
@@ -65,6 +77,7 @@ pub enum Expr {
     Var(String),
     VarAssign(String, Box<Expr>),
     Binop(Op, Box<Expr>, Box<Expr>),
+    If(Box<Expr>, Vec<Expr>), // condition, expr in body, else expr (link to if or else)
 }
 
 impl Expr {
@@ -89,6 +102,14 @@ impl fmt::Display for Expr {
             Expr::VarAssign(v, e) => write!(f, "{} = {}", v, e),
             Expr::Binop(op, left, right) => {
                 write!(f, "Binop({}, {}, {})", op, left, right)
+            },
+            Expr::If(condition, body) => {
+                write!(f, "If({}, ", condition);
+
+                for expr in body {
+                    write!(f, "{}, ", expr);
+                }
+                write!(f, ")")
             }
         }
     }

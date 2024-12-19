@@ -1,4 +1,6 @@
+use crate::lexer::tokenize;
 use crate::types::{Token, Expr, Op};
+use std::io::{self, Write};
 
 fn lookahead(tokens: &Vec<Token>) -> Option<&Token> {
   tokens.get(0)
@@ -21,29 +23,109 @@ fn match_token(tokens: &Vec<Token>, token: &Token) -> Result<Vec<Token>, String>
   }
 }
 
-pub fn parse(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn read_body_line(prev_indent: &mut i32) -> Result<(Vec<Token>, i32), String> {
+  print!("... ");
+  io::stdout().flush().unwrap();
+  let mut input = String::new();
+  io::stdin().read_line(&mut input).unwrap();
+  
+  tokenize(&input, prev_indent)
+}
+
+pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32) -> Result<(Vec<Token>, Expr), String> {
   match (lookahead(tokens), lookahead_at(tokens, 1)) {
-    // VarAssignExpr
-    (Some(Token::TokVar(v)), Some(Token::TokAssign)) => parse_var_assign(&match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), v),
-    // OrExpr
-    _ => parse_or(tokens)
+    // AssignStatement
+    (Some(Token::TokVar(v)), Some(Token::TokAssign)) => parse_assign(&match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), v),
+    
+    // IfStatement
+    (Some(Token::TokIf), _) => parse_if(&match_token(&tokens, &Token::TokIf).unwrap(), prev_indent),
+    
+    // Expr
+    _ => parse_expr(tokens)
   }
 }
 
-fn parse_var_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, Expr), String> {
-  match parse_or(&match_token(&tokens, &Token::TokAssign).unwrap()) {
+fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, Expr), String> {
+  match parse_expr(&match_token(&tokens, &Token::TokAssign).unwrap()) {
     Ok((tokens2, e)) => Ok((tokens2, Expr::VarAssign(var_name.clone(), Box::from(e)))),
     Err(e) => Err(e)
   }
 }
 
-fn parse_or(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32) -> Result<(Vec<Token>, Expr), String> {
+  match parse_expr(tokens) {
+    // Condition of if statement
+    Ok((tokens2, condition)) => {
+      // match colon token
+      match match_token(&tokens2, &Token::TokColon) {
+        Ok(tokens3) if tokens3.is_empty() => {
+          // Read first line of closure under if statement and tokenize
+          match read_body_line(prev_indent) {
+            Ok((body_tokens, indentation)) => {
+              let original_indent = *prev_indent;
+              *prev_indent = indentation;
+
+              match lookahead(&body_tokens) {
+                // Get indent for first line of body
+                Some(Token::TokIndent(n)) => {
+                  // Parsing body of if statement
+                  let mut body_contents = Vec::<Expr>::new();
+                  match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, original_indent, &mut body_contents) {
+                    Ok((tokens4, _)) => Ok((tokens4, Expr::If(Box::from(condition), body_contents))),
+                    Err(e) => Err(e)
+                  }
+                },
+                _ => Err("Indentation Error: expected indent".to_string())
+              }
+            },
+            Err(e) => Err(e)
+          }
+        },
+        Err(e) => Err(e),
+        _ => Err("SyntaxError: expected new line after ':'".to_string()) // more tokens after :
+      }
+    },
+    Err(e) => Err(e)
+  }
+}
+
+fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, original_indent: i32, body_contents: &mut Vec<Expr>) -> Result<(Vec<Token>, Vec<Expr>), String> {
+  match lookahead(tokens) {
+    // Correct unindent to exit body 
+    Some(&Token::TokDedent(n)) if n == original_indent => Ok((match_token(&tokens, &Token::TokDedent(original_indent)).unwrap(), body_contents.to_vec())),
+
+    // Incorrect unindent
+    Some(&Token::TokDedent(n)) => Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n)),
+
+    _ => {
+      // Parse current line
+      match parse(tokens, prev_indent) {
+        Ok((tokens2, expr)) if tokens2.is_empty() => {
+          body_contents.push(expr);
+
+          // Get next line and make recursive call
+          match read_body_line(prev_indent) {
+            Ok((next_line, indentation)) => {
+              *prev_indent = indentation;
+              return parse_body(&next_line, prev_indent, original_indent, body_contents)
+            },
+            Err(e) => Err(e)
+          }
+        },
+        Err(e) => Err(e),
+        _ => Err("SyntaxError: invalid syntax".to_string())
+      }
+    }
+  }
+}
+
+fn parse_expr(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   match parse_and(tokens) {
     Ok((tokens2, and_expr)) => {
       match lookahead(&tokens2) {
         // AndExpr or OrExpr
         Some(Token::TokOr) => {
-          match parse_or(&match_token(&tokens2, &Token::TokOr).unwrap()) {
+          match parse_expr(&match_token(&tokens2, &Token::TokOr).unwrap()) {
             Ok((tokens3, or_expr)) => {
               Ok((tokens3, Expr::Binop(Op::Or, Box::from(and_expr), Box::from(or_expr))))
             },
@@ -282,7 +364,7 @@ fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
       match match_token(&tokens, &Token::TokLParen) {
         Ok(tokens2) => {
           // Parse expression inside parentheses
-          match parse_or(&tokens2) {
+          match parse_expr(&tokens2) {
             Ok((tokens3, expr)) => {
               // Match closing parenthesis
               match match_token(&tokens3, &Token::TokRParen) {

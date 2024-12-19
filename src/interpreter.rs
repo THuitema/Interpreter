@@ -62,7 +62,8 @@ pub fn eval_expr(expr: &Expr, env: &mut Environment) -> Result<Expr, String> {
         (Err(e), _) => Err(e),
         (_, Err(e)) => Err(e),
       }
-    }
+    },
+    _ => Err("SyntaxError: unexpected expression".to_string())
   }
 }
 

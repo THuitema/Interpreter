@@ -19,14 +19,14 @@ fn main() {
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
 
-        let input = input.trim();
+        // let input = input.trim();
 
         // Exit condition
         if input == "q" || input == "quit" {
             break;
         }
         
-        execute(input, &mut env);
+        execute(&input, &mut env);
         
     }
 
@@ -35,25 +35,28 @@ fn main() {
 }
 
 fn execute(input: &str, env: &mut Environment) {
-    match lexer::tokenize(input) {
-        Ok(t) => {
-            // print!("Tokens: ");
-            // for token in &t {
-            //     print!("{}, ", token)
-            // }
-            // println!("");
-            match parser::parse(&t) {
+    let mut prev_indent = 0;
+
+    match lexer::tokenize(input, &mut prev_indent) {
+        Ok((t, indentation)) => {
+            print!("Tokens: ");
+            for token in &t {
+                print!("{}, ", token)
+            }
+            println!("");
+            prev_indent = indentation;
+            match parser::parse(&t, &mut prev_indent) {
                 Ok((tokens_res, expr)) => {
-                    match tokens_res[..] {
-                        [] => {
-                            match interpreter::eval_expr(&expr, env) {
-                                Ok(result) => println!("{}", result),
-                                Err(e) => println!("{}", e)
-                            }
-                        },
-                        _ => println!("SyntaxError: invalid syntax")
+                    // match tokens_res[..] {
+                    //     [] => {
+                    //         match interpreter::eval_expr(&expr, env) {
+                    //             Ok(result) => println!("{}", result),
+                    //             Err(e) => println!("{}", e)
+                    //         }
+                    //     },
+                    //     _ => println!("SyntaxError: invalid syntax")
                         
-                    }
+                    // }
                     print!("Parse Tree: {}\n", expr);
                     print_env(env);
                     

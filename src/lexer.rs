@@ -1,11 +1,13 @@
 use crate::types::Token;
 use regex::Regex;
 
-pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
+// If Ok, returns token list and indentation size (number of spaces)
+pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i32), String> {
   let mut input = input;
 
   // Regex Patterns
   let re_whitespace = Regex::new(r"^(\s+)").unwrap();
+  let re_singlespace = Regex::new(r"^\s").unwrap();
   let re_pos_int = Regex::new(r"^(\d+)").unwrap();
   let re_neg_int = Regex::new(r"^(-)(\d+)").unwrap();
   let re_pos_float = Regex::new(r"^(\d*\.\d+)").unwrap();
@@ -28,12 +30,30 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
   let re_string = Regex::new(r#"^("[^"]*"|'[^"']*')"#).unwrap();
   let re_variable = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
   let re_assignment = Regex::new(r"^=").unwrap();
-  // if
-  // elif
-  // else
-  // :
+  let re_if = Regex::new(r"^if").unwrap();
+  let re_elif = Regex::new(r"^elif").unwrap();
+  let re_else = Regex::new(r"^else").unwrap();
+  let re_colon = Regex::new(r"^:").unwrap();
   // not
+
   let mut tokens = Vec::new();
+
+  // Get indentation of line
+  let mut indentation: i32 = 0;
+  while let Some(_) = re_singlespace.captures(input) {
+    indentation += 1;
+    input = &input[1..];
+  }
+
+  if input.is_empty() {
+    indentation -= 1;
+  }
+
+  if indentation > *prev_indent_spaces {
+    tokens.push(Token::TokIndent(indentation));
+  } else if indentation < *prev_indent_spaces {
+    tokens.push(Token::TokDedent(indentation));
+  }
 
   while input.len() > 0 {
     // Whitespace
@@ -159,6 +179,12 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       input = &input[1..];
     }
 
+    // Colon
+    else if let Some(_) = re_colon.captures(input) {
+      tokens.push(Token::TokColon);
+      input = &input[1..];
+    }
+
     // Protected keywords and variable names
     else if let Some(capture) = re_variable.captures(input) {
       let capture_str = capture.get(0).unwrap().as_str();
@@ -185,19 +211,36 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
         input = &input[2..];
       }
 
+      // If
+      else if let Some(_) = re_if.captures(capture_str) {
+        tokens.push(Token::TokIf);
+        input = &input[2..];
+      }
+
+      // Elif
+      else if let Some(_) = re_elif.captures(capture_str) {
+        tokens.push(Token::TokElif);
+        input = &input[4..];
+      }
+
+      // Else
+      else if let Some(_) = re_else.captures(capture_str) {
+        tokens.push(Token::TokElse);
+        input = &input[4..];
+      }
+
       // Variable name
       else {
         tokens.push(Token::TokVar(String::from(capture_str)));
         input = &input[capture_str.len()..];
       }
-
     }
 
     // Invalid Input
     else {
-      return Err(format!("{}{}", "Error lexing input: ", input));
+      return Err(format!("LexerError: unexpected token {}", input));
     }
   }
 
-  return Ok(tokens);
+  return Ok((tokens, indentation));
 }
