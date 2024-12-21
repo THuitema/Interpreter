@@ -55,7 +55,7 @@ fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, E
 fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Expr), String> {
   // println!("Prev indent: {}", prev_indent);
   indent_stack.push(*prev_indent);
-  println!("Parsing if");
+  // println!("Parsing if");
   match parse_expr(tokens) {
     // Condition of if statement
     Ok((tokens2, condition)) => {
@@ -73,11 +73,11 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
                   let mut body_contents = Vec::<Expr>::new();
                   match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
                     Ok((tokens4, _)) => {
-                      print!("Tokens: ");
-                      for i in &tokens4 {
-                        print!(" {},", i);
-                      }
-                      println!("");
+                      // print!("Tokens: ");
+                      // for i in &tokens4 {
+                      //   print!(" {},", i);
+                      // }
+                      // println!("");
                       Ok((tokens4, Expr::If(Box::from(condition), body_contents)))
                     },
                     Err(e) => Err(e)
@@ -98,17 +98,17 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
 }
 
 fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<Expr>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<Expr>), String> {
-  print!("INDENT STACK:");
-  for i in indent_stack.clone() {
-    print!(" {},", i);
-  }
-  println!("");
+  // print!("INDENT STACK:");
+  // for i in indent_stack.clone() {
+  //   print!(" {},", i);
+  // }
+  // println!("");
   match lookahead(tokens) {
     Some(Token::TokDedent(n)) => {
       // Remove the while loop, make the popping part of the recursion
       if let Some(peek) = indent_stack.last() {
         if *n == *peek {
-          println!("n == peek");
+          // println!("n == peek");
           if *n == 0 { // unindenting to no indent -- i.e. exiting all closures
             return Ok((match_token(&tokens, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()))
           }
@@ -117,10 +117,10 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
         } else if *n < *peek {
           // this may perform the same action as n == peek, needs to exit multiple levels of indents
           // miiight need to call parse_body here, but i dont think so
-          println!("n < peek");
+          // println!("n < peek");
           indent_stack.pop();
           // may need to parse_body instead of Ok
-          
+
           return Ok((tokens.to_vec(), body_contents.to_vec()))
           // return parse_body(tokens, prev_indent, body_contents, indent_stack);
         } 
@@ -144,18 +144,23 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
               if *n == *peek { // Are on current level of this dedent, so we can parse the line
                 indent_stack.pop();
                 // parse rest of tokens
-                print!("3 Tokens: ");
-                for i in &tokens2 {
-                  print!(" {},", i);
-                }
-                println!("");
+                // print!("3 Tokens: ");
+                // for i in &tokens2 {
+                //   print!(" {},", i);
+                // }
+                // println!("");
                 if indent_stack.is_empty() {
                   return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
                 }
                 // println!("HERE 2");
                 return parse_body(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
               }
-              
+
+              // think issue is here after returning innermost if statement, n < peak, so if statement here is skipped over & nothing popped or matched
+              // maybe add if n < peak, pop then say Ok? yeah b/c not popping indent 2 creates a spiraling effect, never matching n == peek when executing the rest of the outer if statement
+              else if *n < *peek {
+                indent_stack.pop();
+              }
               Ok((tokens2, body_contents.to_vec()))
             },
             Some(_) => Err(format!("SyntaxError: not all tokens from previous line were parsed")),
@@ -165,11 +170,11 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
               // println!("HERE");
               match read_body_line(prev_indent) {
                 Ok((next_line, indentation)) => {
-                  print!("2 Tokens: ");
-                  for i in &next_line {
-                    print!(" {},", i);
-                  }
-                  println!("");
+                  // print!("2 Tokens: ");
+                  // for i in &next_line {
+                  //   print!(" {},", i);
+                  // }
+                  // println!("");
                   *prev_indent = indentation;
                   parse_body(&next_line, prev_indent, body_contents, indent_stack)
                 },
