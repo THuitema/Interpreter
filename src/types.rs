@@ -101,7 +101,7 @@ impl fmt::Display for Expr {
             Expr::Var(v) => write!(f, "{}", v),
             Expr::VarAssign(v, e) => write!(f, "{} = {}", v, e),
             Expr::Binop(op, left, right) => {
-                write!(f, "({}) {} ({})", left, op, right)
+                write!(f, "{} {} {}", left, op, right)
             },
             Expr::If(condition, body) => {
                 write!(f, "If({}, [", condition);

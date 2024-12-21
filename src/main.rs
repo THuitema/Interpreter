@@ -35,7 +35,8 @@ fn main() {
 }
 
 fn execute(input: &str, env: &mut Environment) {
-    let mut prev_indent = 0;
+    let mut prev_indent = 0; // could change to curr_indent that tracks current indent, not always pushed to stack
+    let mut indent_stack = Vec::<i32>::new(); // should be able to replace prev_indent and original_indent
 
     match lexer::tokenize(input, &mut prev_indent) {
         Ok((t, indentation)) => {
@@ -45,19 +46,20 @@ fn execute(input: &str, env: &mut Environment) {
             // }
             // println!("");
             prev_indent = indentation;
-            match parser::parse(&t, &mut prev_indent) {
+            match parser::parse(&t, &mut prev_indent, &mut indent_stack) {
                 Ok((tokens_res, expr)) => {
-                    // match tokens_res[..] {
-                    //     [] => {
-                    //         match interpreter::eval_expr(&expr, env) {
-                    //             Ok(result) => println!("{}", result),
-                    //             Err(e) => println!("{}", e)
-                    //         }
-                    //     },
-                    //     _ => println!("SyntaxError: invalid syntax")
+                    match tokens_res[..] {
+                        [] => {
+                            print!("Parse Tree: {}\n", expr);
+                            // match interpreter::eval_expr(&expr, env) {
+                            //     Ok(result) => println!("{}", result),
+                            //     Err(e) => println!("{}", e)
+                            // }
+                        },
+                        _ => println!("SyntaxError: invalid syntax")
                         
-                    // }
-                    print!("Parse Tree: {}\n", expr);
+                    }
+                    // print!("Parse Tree: {}\n", expr);
                     // print_env(env);
                     
                 },
