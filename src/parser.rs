@@ -52,32 +52,26 @@ fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, E
   }
 }
 
+// Returns expression of if statement condition and list of expressions in body
 fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Expr), String> {
-  // println!("Prev indent: {}", prev_indent);
   indent_stack.push(*prev_indent);
-  // println!("Parsing if");
   match parse_expr(tokens) {
     // Condition of if statement
     Ok((tokens2, condition)) => {
-      // match colon token
       match match_token(&tokens2, &Token::TokColon) {
         Ok(tokens3) if tokens3.is_empty() => {
-          // Read first line of closure under if statement and tokenize
+          // Read first line of body under if statement and tokenize
           match read_body_line(prev_indent) {
             Ok((body_tokens, indentation)) => {
               *prev_indent = indentation;
               match lookahead(&body_tokens) {
                 // Get indent for first line of body
                 Some(Token::TokIndent(n)) => {
+
                   // Parsing body of if statement
                   let mut body_contents = Vec::<Expr>::new();
-                  match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
+                  match parse_body2(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
                     Ok((tokens4, _)) => {
-                      // print!("Tokens: ");
-                      // for i in &tokens4 {
-                      //   print!(" {},", i);
-                      // }
-                      // println!("");
                       Ok((tokens4, Expr::If(Box::from(condition), body_contents)))
                     },
                     Err(e) => Err(e)
@@ -97,93 +91,76 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
   }
 }
 
-fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<Expr>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<Expr>), String> {
-  print!("INDENT STACK:");
-  for i in indent_stack.clone() {
-    print!(" {},", i);
-  }
-  println!("");
-  match lookahead(tokens) {
-    Some(Token::TokDedent(n)) => {
-      if let Some(peek) = indent_stack.last() {
-        if *n == *peek {
-          println!("n == peek");
-          // indent_stack.pop();
-          // if indent_stack.is_empty() {
-          //   return Ok((match_token(&tokens, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
-          // }
-          if *n == 0 { // unindenting to no indent -- i.e. exiting all closures  
-            return Ok((match_token(&tokens, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec())) // tokens.to_vec() (match_token(&tokens, &Token::TokDedent(*n)).unwrap()
-            // *** READING EXTRA LINE & GETTING ERROR BC THIS DEDENT GETS REMOVED
-          }
-          return parse_body(&match_token(&tokens, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
-          // return Ok((tokens.to_vec(), body_contents.to_vec())) // match_token(&tokens, &Token::TokDedent(*n)).unwrap()
-        } else if *n < *peek {
-          // this may perform the same action as n == peek, needs to exit multiple levels of indents
-          // miiight need to call parse_body here, but i dont think so
-          // println!("n < peek");
-          // indent_stack.pop();
+// Parses a closure (determined by indents in Python), returning a list of the expressions in it
+fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<Expr>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<Expr>), String> {
+  match parse(tokens, prev_indent, indent_stack) {
+    Ok((tokens2, expr)) => {
+      match lookahead(&tokens2) {
 
-          return Ok((tokens.to_vec(), body_contents.to_vec()))
-        } 
-      }
-      return Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n));
-    },
-    _ => {
-      // Parse current line
-
-      match parse(tokens, prev_indent, indent_stack) {
-        Ok((tokens2, expr)) => { // if tokens2.is_empty() 
-          match lookahead(&tokens2) {
-            Some(Token::TokDedent(n)) => {
-              body_contents.push(expr);
-              indent_stack.pop();
-              if indent_stack.is_empty() { // or indent_stack is empty
-                return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
-              }
-              return parse_body(&tokens2, prev_indent, body_contents, indent_stack);
-              //Ok((tokens2.to_vec(), body_contents.to_vec())) //match_token(&tokens2, &Token::TokDedent(*n)).unwrap()
-
-              
-              // let peek = indent_stack.last().unwrap();
-              // if *n == *peek { // Are on current level of this dedent, so we can parse the line
-              //   indent_stack.pop();
-              //   // parse rest of tokens
-
-              //   if indent_stack.is_empty() {
-              //     return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
-              //   }
-              //   // println!("HERE 2");
-              //   return parse_body(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
-              //   // return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()))
-              // }
-
-              // // think issue is here after returning innermost if statement, n < peak, so if statement here is skipped over & nothing popped or matched
-              // // maybe add if n < peak, pop then say Ok? yeah b/c not popping indent 2 creates a spiraling effect, never matching n == peek when executing the rest of the outer if statement
-              // else if *n < *peek {
-              //   indent_stack.pop();
-              // }
-              // Ok((tokens2, body_contents.to_vec()))
-            },
-            Some(_) => Err(format!("SyntaxError: not all tokens from previous line were parsed")),
-            None => {
-              body_contents.push(expr);
-
-              // println!("HERE");
-              match read_body_line(prev_indent) {
-                Ok((next_line, indentation)) => {
-                  *prev_indent = indentation;
-                  parse_body(&next_line, prev_indent, body_contents, indent_stack)
-                },
-                Err(e) => Err(e)
-              }
+        Some(Token::TokDedent(n)) => {
+          body_contents.push(expr);
+        
+          let peek = indent_stack.last().unwrap();
+          // Current line was unindented to return to the current scope
+          if *n == *peek {
+            indent_stack.pop();
+            // Check if outer-most scope was exited
+            if indent_stack.is_empty() {
+              return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
             }
+            return parse_body2(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
+          } else if *n < *peek { 
+            // Current line is unindented past this current level, so return to get to outside scope
+            indent_stack.pop();
+            // Check if outer-most scope was exited
+            if *indent_stack.last().unwrap() == 0 { 
+              indent_stack.pop();
+              return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
+            }
+            return Ok((tokens2, body_contents.to_vec()));
+          } else {
+            return Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n));
           }
         },
-        Err(e) => Err(e),
+        Some(_) => Err(format!("SyntaxError: not all tokens from previous line were parsed")),
+        None => {
+          body_contents.push(expr);
+          match read_body_line(prev_indent) {
+            Ok((next_line, indentation)) => {
+              *prev_indent = indentation;
+        
+              // need to match dedents here since recursive call causes tokens to be parsed
+              match lookahead(&next_line) {
+        
+                // Input is unindented, exit to outer scope
+                Some(Token::TokDedent(n)) => {
+                  let peek = indent_stack.last().unwrap();
+        
+                  if *n == *peek {
+                    if *peek == 0 { 
+                      indent_stack.pop();
+                      return Ok((match_token(&next_line, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
+                    }
+                    return Ok((next_line, body_contents.to_vec()));
+                  } else if *n < *peek {
+                    return Ok((next_line, body_contents.to_vec()));
+                  }
+                  return Err(format!("IndentationError: unindent of size {} does not match any outer indentation level", n));
+        
+                },
+                // Line on same level was entered, parse it and continue on this level
+                _ => parse_body2(&next_line, prev_indent, body_contents, indent_stack)
+                // None => {
+                //   return Err(format!("Syntax Error: nothing entered"));
+                // }
+              } 
+            },
+            Err(e) => Err(e)
+          }
+        }
       }
-    }
-    
+    },
+    Err(e) => Err(e)
   }
 }
 

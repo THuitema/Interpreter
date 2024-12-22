@@ -56,7 +56,14 @@ fn execute(input: &str, env: &mut Environment) {
                             //     Err(e) => println!("{}", e)
                             // }
                         },
-                        _ => println!("SyntaxError: invalid syntax")
+                        _ => {
+                            println!("SyntaxError: invalid syntax");
+                            print!("Tokens: ");
+                            for token in &tokens_res {
+                                print!("{}, ", token)
+                            }
+                            println!("");
+                        }
                         
                     }
                     // print!("Parse Tree: {}\n", expr);
