@@ -69,6 +69,22 @@ impl fmt::Display for Token {
 }
 
 #[derive(Clone, Debug)]
+pub enum PyType {
+    Stmt(Stmt),
+    Expr(Expr)
+}
+
+impl PyType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PyType::Stmt(s) => write!(f, "{}", s),
+            PyType::Expr(e) => write!(f, "{}", e)
+        }
+    }
+
+}
+
+#[derive(Clone, Debug)]
 pub enum Expr {
     Int(i32),
     Float(f32),
@@ -104,6 +120,29 @@ impl fmt::Display for Expr {
                 write!(f, "{} {} {}", left, op, right)
             },
             Expr::If(condition, body) => {
+                write!(f, "If({}, [", condition);
+
+                for expr in body {
+                    write!(f, "{}, ", expr);
+                }
+                write!(f, "])")
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Stmt {
+    If(Box<Expr>, Vec<Expr>), // condition, expr in body, else expr (link to if or else)
+    VarAssign(String, Box<Expr>),
+
+}
+
+impl fmt::Display for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Stmt::VarAssign(v, e) => write!(f, "{} = {}", v, e),
+            Stmt::If(condition, body) => {
                 write!(f, "If({}, [", condition);
 
                 for expr in body {
