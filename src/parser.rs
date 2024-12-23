@@ -1,5 +1,5 @@
-use crate::lexer::tokenize;
-use crate::types::{Token, Expr, Op};
+use crate::lexer::tokenize; 
+use crate::types::{Token, PyType, Stmt, Expr, Op};
 use std::io::{self, Write};
 
 fn lookahead(tokens: &Vec<Token>) -> Option<&Token> {
@@ -32,7 +32,7 @@ fn read_body_line(prev_indent: &mut i32) -> Result<(Vec<Token>, i32), String> {
   tokenize(&input, prev_indent)
 }
 
-pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Expr), String> {
+pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, PyType), String> {
   match (lookahead(tokens), lookahead_at(tokens, 1)) {
     // AssignStatement
     (Some(Token::TokVar(v)), Some(Token::TokAssign)) => parse_assign(&match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), v),
@@ -45,15 +45,15 @@ pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<
   }
 }
 
-fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, Expr), String> {
+fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, PyType), String> {
   match parse_expr(&match_token(&tokens, &Token::TokAssign).unwrap()) {
-    Ok((tokens2, e)) => Ok((tokens2, Expr::VarAssign(var_name.clone(), Box::from(e)))),
+    Ok((tokens2, e)) => Ok((tokens2, PyType::Stmt(Stmt::VarAssign(var_name.clone(), Box::from(e))))),
     Err(e) => Err(e)
   }
 }
 
 // Returns expression of if statement condition and list of expressions in body
-fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, PyType), String> {
   indent_stack.push(*prev_indent);
   match parse_expr(tokens) {
     // Condition of if statement
@@ -69,10 +69,10 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
                 Some(Token::TokIndent(n)) => {
 
                   // Parsing body of if statement
-                  let mut body_contents = Vec::<Expr>::new();
-                  match parse_body2(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
+                  let mut body_contents = Vec::<PyType>::new();
+                  match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
                     Ok((tokens4, _)) => {
-                      Ok((tokens4, Expr::If(Box::from(condition), body_contents)))
+                      Ok((tokens4, PyType::Stmt(Stmt::If(Box::from(condition), body_contents))))
                     },
                     Err(e) => Err(e)
                   }
@@ -92,13 +92,13 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
 }
 
 // Parses a closure (determined by indents in Python), returning a list of the expressions in it
-fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<Expr>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<Expr>), String> {
+fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<PyType>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<PyType>), String> {
   match parse(tokens, prev_indent, indent_stack) {
-    Ok((tokens2, expr)) => {
+    Ok((tokens2, parsed_line)) => {
       match lookahead(&tokens2) {
 
         Some(Token::TokDedent(n)) => {
-          body_contents.push(expr);
+          body_contents.push(parsed_line);
         
           let peek = indent_stack.last().unwrap();
           // Current line was unindented to return to the current scope
@@ -108,7 +108,7 @@ fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut V
             if indent_stack.is_empty() {
               return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
             }
-            return parse_body2(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
+            return parse_body(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
           } else if *n < *peek { 
             // Current line is unindented past this current level, so return to get to outside scope
             indent_stack.pop();
@@ -124,7 +124,7 @@ fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut V
         },
         Some(_) => Err(format!("SyntaxError: not all tokens from previous line were parsed")),
         None => {
-          body_contents.push(expr);
+          body_contents.push(parsed_line);
           match read_body_line(prev_indent) {
             Ok((next_line, indentation)) => {
               *prev_indent = indentation;
@@ -149,7 +149,7 @@ fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut V
         
                 },
                 // Line on same level was entered, parse it and continue on this level
-                _ => parse_body2(&next_line, prev_indent, body_contents, indent_stack)
+                _ => parse_body(&next_line, prev_indent, body_contents, indent_stack)
                 // None => {
                 //   return Err(format!("Syntax Error: nothing entered"));
                 // }
@@ -164,7 +164,7 @@ fn parse_body2(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut V
   }
 }
 
-fn parse_expr(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_expr(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_and(tokens) {
     Ok((tokens2, and_expr)) => {
       match lookahead(&tokens2) {
@@ -172,7 +172,7 @@ fn parse_expr(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokOr) => {
           match parse_expr(&match_token(&tokens2, &Token::TokOr).unwrap()) {
             Ok((tokens3, or_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::Or, Box::from(and_expr), Box::from(or_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::Or, Box::from(and_expr), Box::from(or_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -185,7 +185,7 @@ fn parse_expr(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   }
 }
 
-fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_equality(tokens) {
     Ok((tokens2, equality_expr)) => {
       match lookahead(&tokens2) {
@@ -193,7 +193,7 @@ fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokAnd) => {
           match parse_and(&match_token(&tokens2, &Token::TokAnd).unwrap()) {
             Ok((tokens3, and_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::And, Box::from(equality_expr), Box::from(and_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::And, Box::from(equality_expr), Box::from(and_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -206,7 +206,7 @@ fn parse_and(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   }
 }
 
-fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_relational(tokens) {
     Ok((tokens2, relational_expr)) => {
       match lookahead(&tokens2) {
@@ -214,7 +214,7 @@ fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokDoubleEqual) => {
           match parse_equality(&match_token(&tokens2, &Token::TokDoubleEqual).unwrap()) {
             Ok((tokens3, equality_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::Equal, Box::from(relational_expr), Box::from(equality_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::Equal, Box::from(relational_expr), Box::from(equality_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -223,7 +223,7 @@ fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokNotEqual) => {
           match parse_equality(&match_token(&tokens2, &Token::TokNotEqual).unwrap()) {
             Ok((tokens3, equality_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::NotEqual, Box::from(relational_expr), Box::from(equality_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::NotEqual, Box::from(relational_expr), Box::from(equality_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -236,7 +236,7 @@ fn parse_equality(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   }
 }
 
-fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_additive(tokens) {
     Ok((tokens2, additive_expr)) => {
       match lookahead(&tokens2) {
@@ -244,7 +244,7 @@ fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokLess) => {
           match parse_relational(&match_token(&tokens2, &Token::TokLess).unwrap()) {
             Ok((tokens3, relational_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::Less, Box::from(additive_expr), Box::from(relational_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::Less, Box::from(additive_expr), Box::from(relational_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -253,7 +253,7 @@ fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokGreater) => {
           match parse_relational(&match_token(&tokens2, &Token::TokGreater).unwrap()) {
             Ok((tokens3, relational_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::Greater, Box::from(additive_expr), Box::from(relational_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::Greater, Box::from(additive_expr), Box::from(relational_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -262,7 +262,7 @@ fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokLessEqual) => {
           match parse_relational(&match_token(&tokens2, &Token::TokLessEqual).unwrap()) {
             Ok((tokens3, relational_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::LessEqual, Box::from(additive_expr), Box::from(relational_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::LessEqual, Box::from(additive_expr), Box::from(relational_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -271,7 +271,7 @@ fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokGreaterEqual) => {
           match parse_relational(&match_token(&tokens2, &Token::TokGreaterEqual).unwrap()) {
             Ok((tokens3, relational_expr)) => {
-              Ok((tokens3, Expr::Binop(Op::GreaterEqual, Box::from(additive_expr), Box::from(relational_expr))))
+              Ok((tokens3, PyType::Expr(Expr::Binop(Op::GreaterEqual, Box::from(additive_expr), Box::from(relational_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -284,7 +284,7 @@ fn parse_relational(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   }
 }
 
-fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_multiplicative(tokens) {
     Ok((tokens2, mult_expr)) => {
       match lookahead(&tokens2) {
@@ -292,7 +292,7 @@ fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokPlus) => {
           match parse_additive(&match_token(&tokens2, &Token::TokPlus).unwrap()) {
             Ok((tokens3, add_expr)) => {
-              return Ok((tokens3, Expr::Binop(Op::Add, Box::from(mult_expr), Box::from(add_expr))))
+              return Ok((tokens3, PyType::Expr(Expr::Binop(Op::Add, Box::from(mult_expr), Box::from(add_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -302,7 +302,7 @@ fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokMinus) => {
           match parse_additive(&match_token(&tokens2, &Token::TokMinus).unwrap()) {
             Ok((tokens3, add_expr)) => {
-              return Ok((tokens3, Expr::Binop(Op::Sub, Box::from(mult_expr), Box::from(add_expr))))
+              return Ok((tokens3, PyType::Expr(Expr::Binop(Op::Sub, Box::from(mult_expr), Box::from(add_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -312,7 +312,7 @@ fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
         Some(Token::TokUnaryMinus) => {
           match parse_primary(&match_token(&tokens2, &Token::TokUnaryMinus).unwrap()) {
             Ok((tokens3, num_expr)) => {
-              return Ok((tokens3, Expr::Binop(Op::Sub, Box::from(mult_expr), Box::from(num_expr))))
+              return Ok((tokens3, PyType::Expr(Expr::Binop(Op::Sub, Box::from(mult_expr), Box::from(num_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -326,7 +326,7 @@ fn parse_additive(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
 }
 }
 
-fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match parse_unary(tokens) {
     Ok((tokens2, unary_expr)) => {
       match lookahead(&tokens2) {
@@ -334,7 +334,7 @@ fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), Strin
         Some(Token::TokMult) => {
           match parse_multiplicative(&match_token(&tokens2, &Token::TokMult).unwrap()) {
             Ok((tokens3, mult_expr)) => {
-              return Ok((tokens3, Expr::Binop(Op::Mult, Box::from(unary_expr), Box::from(mult_expr))))
+              return Ok((tokens3, PyType::Expr(Expr::Binop(Op::Mult, Box::from(unary_expr), Box::from(mult_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -344,7 +344,7 @@ fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), Strin
         Some(Token::TokDiv) => {
           match parse_multiplicative(&match_token(&tokens2, &Token::TokDiv).unwrap()) {
             Ok((tokens3, mult_expr)) => {
-              return Ok((tokens3, Expr::Binop(Op::Div, Box::from(unary_expr), Box::from(mult_expr))))
+              return Ok((tokens3, PyType::Expr(Expr::Binop(Op::Div, Box::from(unary_expr), Box::from(mult_expr)))))
             },
             Err(e) => Err(e)
           }
@@ -358,13 +358,13 @@ fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), Strin
   }
 }
 
-fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match lookahead(&tokens) {
     // TokUnaryMinus NumericalExpr
     Some(Token::TokUnaryMinus) => {
       match parse_primary(&match_token(&tokens, &Token::TokUnaryMinus).unwrap()) {
         Ok((tokens2, num_expr)) => {
-          Ok((tokens2, Expr::Binop(Op::Mult, Box::from(Expr::Int(-1)), Box::from(num_expr))))
+          Ok((tokens2, PyType::Expr(Expr::Binop(Op::Mult, Box::from(PyType::Expr(Expr::Int(-1))), Box::from(num_expr)))))
         },
         Err(e) => Err(e)
       }
@@ -376,31 +376,31 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
   
 }
 
-fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, Expr), String> {
+fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match lookahead(&tokens) {
     // Int
     Some(Token::TokInt(n)) => {
-      Ok((match_token(&tokens, &Token::TokInt(*n)).unwrap(), Expr::Int(*n)))
+      Ok((match_token(&tokens, &Token::TokInt(*n)).unwrap(), PyType::Expr(Expr::Int(*n))))
     },
 
     // Float
     Some(Token::TokFloat(d)) => {
-      Ok((match_token(&tokens, &Token::TokFloat(*d)).unwrap(), Expr::Float(*d)))
+      Ok((match_token(&tokens, &Token::TokFloat(*d)).unwrap(), PyType::Expr(Expr::Float(*d))))
     },
 
     // String
     Some(Token::TokString(s)) => {
-      Ok((match_token(&tokens, &Token::TokString(s.clone())).unwrap(), Expr::String(s.clone())))
+      Ok((match_token(&tokens, &Token::TokString(s.clone())).unwrap(), PyType::Expr(Expr::String(s.clone()))))
     },
 
     // Bool
     Some(Token::TokBool(b)) => {
-      Ok((match_token(&tokens, &Token::TokBool(*b)).unwrap(), Expr::Bool(*b)))
+      Ok((match_token(&tokens, &Token::TokBool(*b)).unwrap(), PyType::Expr(Expr::Bool(*b))))
     },
 
     // Var
     Some(Token::TokVar(v)) => {
-      Ok((match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), Expr::Var(v.clone())))
+      Ok((match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), PyType::Expr(Expr::Var(v.clone()))))
     },
 
     // (OrExpr) or error

@@ -50,11 +50,11 @@ fn execute(input: &str, env: &mut Environment) {
                 Ok((tokens_res, expr)) => {
                     match tokens_res[..] {
                         [] => {
-                            print!("Parse Tree: {}\n", expr);
-                            // match interpreter::eval_expr(&expr, env) {
-                            //     Ok(result) => println!("{}", result),
-                            //     Err(e) => println!("{}", e)
-                            // }
+                            // print!("Parse Tree: {}\n", expr);
+                            match interpreter::evaluate(&expr, env) {
+                                Ok(result) => println!("{}", result),
+                                Err(e) => println!("{}", e)
+                            }
                         },
                         _ => {
                             println!("SyntaxError: invalid syntax");
