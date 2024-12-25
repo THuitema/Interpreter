@@ -3,6 +3,8 @@ mod types;
 mod parser;
 mod interpreter;
 use std::io::{self, Write};
+use crate::types::{PyType, Stmt, Expr};
+
 
 use types::{print_env, Environment};
 
@@ -52,7 +54,9 @@ fn execute(input: &str, env: &mut Environment) {
                         [] => {
                             // print!("Parse Tree: {}\n", expr);
                             match interpreter::evaluate(&expr, env) {
-                                Ok(result) => println!("{}", result),
+                                // Ok(result) => println!("{}", result),
+                                Ok(PyType::Expr(result)) => println!("{}", result),
+                                Ok(result) => print!("{}", result), // PyType::Stmt (print nothing)
                                 Err(e) => println!("{}", e)
                             }
                         },

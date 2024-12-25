@@ -77,7 +77,7 @@ pub enum PyType {
 impl fmt::Display for PyType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PyType::Stmt(s) => write!(f, "{}", s),
+            PyType::Stmt(_) => Ok(()), //write!(f, "{}", s),
             PyType::Expr(e) => write!(f, "{}", e)
         }
     }
@@ -91,9 +91,7 @@ pub enum Expr {
     Bool(bool),
     String(String),
     Var(String),
-    // VarAssign(String, Box<PyType>),
     Binop(Op, Box<PyType>, Box<PyType>),
-    // If(Box<PyType>, Vec<PyType>), // condition, expr in body, else expr (link to if or else)
 }
 
 #[derive(Clone, Debug)]
@@ -130,46 +128,37 @@ impl Expr {
 }
 
 impl fmt::Display for Expr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expr::Int(n) => write!(f, "{}", n),
             Expr::Float(d) => write!(f, "{}", d),
             Expr::String(s) => write!(f, "\"{}\"", s),
             Expr::Bool(b) => if *b {write!(f, "True")} else {write!(f, "False")},
             Expr::Var(v) => write!(f, "{}", v),
-            // Expr::VarAssign(v, e) => write!(f, "{} = {}", v, e),
             Expr::Binop(op, left, right) => {
                 write!(f, "{} {} {}", left, op, right)
             },
-            // Expr::If(condition, body) => {
-            //     write!(f, "If({}, [", condition);
-
-            //     for expr in body {
-            //         write!(f, "{}, ", expr);
-            //     }
-            //     write!(f, "])")
-            // }
         }
     }
 }
 
 
 
-impl fmt::Display for Stmt {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Stmt::VarAssign(v, e) => write!(f, "{} = {}", v, e),
-            Stmt::If(condition, body) => {
-                write!(f, "If({}, [", condition);
+// impl fmt::Display for Stmt {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match self {
+//             Stmt::VarAssign(v, e) => write!(f, "{} = {}", v, e),
+//             Stmt::If(condition, body) => {
+//                 write!(f, "If({}, [", condition);
 
-                for expr in body {
-                    write!(f, "{}, ", expr);
-                }
-                write!(f, "])")
-            }
-        }
-    }
-}
+//                 for expr in body {
+//                     write!(f, "{}, ", expr);
+//                 }
+//                 write!(f, "])")
+//             }
+//         }
+//     }
+// }
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

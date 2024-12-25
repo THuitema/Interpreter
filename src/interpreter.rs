@@ -60,7 +60,7 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
         Ok(PyType::Expr(eval)) => {
           // replace env with new value is name already exists, otherwise push new entry to end
           env_insert(env, v, &PyType::Expr(eval.clone()));
-          Ok(PyType::Expr(eval))
+          Ok(PyType::Stmt(Stmt::VarAssign(v.to_string(), Box::from(PyType::Expr(eval)))))
         },
         Ok(_) => Err("TypeError: variable not assigned to expressions".to_string()),
         Err(e) => Err(e)
