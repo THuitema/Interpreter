@@ -68,7 +68,7 @@ impl fmt::Display for Token {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PyType {
     Stmt(Stmt),
     Expr(Expr)
@@ -84,7 +84,7 @@ impl fmt::Display for PyType {
 
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Int(i32),
     Float(f32),
@@ -94,13 +94,14 @@ pub enum Expr {
     Binop(Op, Box<PyType>, Box<PyType>),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     If(Box<PyType>, Vec<PyType>), // condition, expr in body, else expr (link to if or else)
     VarAssign(String, Box<PyType>),
+    None
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     Add,
     Sub,

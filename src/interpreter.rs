@@ -16,6 +16,18 @@ fn env_insert(env: &mut Environment, name: &String, value: &PyType) {
   env.push((name.clone(), value.clone()));
 }
 
+// Update original environment with new variable values (do not add new variable names)
+fn env_update(env: &mut Environment, closure: &mut Environment) {
+  for (target, old_val) in env.iter_mut() {
+    for (key, new_val) in closure.iter() {
+      if target == key && *old_val != *new_val {
+        *old_val = new_val.clone();
+        return;
+      }
+    }
+  }
+}
+
 pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> {
   match expr {
 
@@ -68,9 +80,33 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
     }
 
     // If Statement
-    // **** TO DO ***
-    PyType::Stmt(Stmt::If(condition, body)) => Err("".to_string()),
+    PyType::Stmt(Stmt::If(condition, body)) => eval_if(condition, body, env),
     _ => Err("SyntaxError: unexpected expression".to_string())
+  }
+}
+
+fn eval_if(condition: &Box<PyType>, body: &Vec<PyType>, env: &mut Environment) -> Result<PyType, String> {
+  let mut closure = env.clone();
+
+  // Check if condition evaluates to boolean
+  match evaluate(condition, &mut closure) {
+    Ok(PyType::Expr(Expr::Bool(b))) => {
+      if b {
+        // Process all lines, return result of last line
+        for i in 0..(body.len() - 1) {
+          if let Err(e) = evaluate(&body[i], &mut closure) {
+            return Err(e);
+          }
+        }
+        let result = evaluate(&body[body.len() - 1], &mut closure);
+        env_update(env, &mut closure);
+        return result;
+      } else {
+        Ok(PyType::Stmt(Stmt::None))
+      }
+    },
+    Ok(_) => Err("SyntaxError: condition of if statement does not evaluate to boolean".to_string()),
+    Err(e) => Err(e)
   }
 }
 
@@ -120,6 +156,7 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} * {}", left_expr, right_expr))
           }
         },
+
         // Division
         Op::Div => {
           match (left_expr, right_expr) {
@@ -131,6 +168,7 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} / {}", left_expr, right_expr))
           }
         },
+
         // Or
         Op::Or => {
           match left_expr.to_bool() {
@@ -138,13 +176,21 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             Err(e) => Err(e),
           }
         },
+
         // And
         Op::And => {
           match left_expr.to_bool() {
-            Ok(b) => if !b {Ok(PyType::Expr(right_expr.clone()))} else {Ok(PyType::Expr(left_expr.clone()))},
+            Ok(b) => {
+              if !b {
+                Ok(PyType::Expr(Expr::Bool(false)))
+              } else {
+                Ok(PyType::Expr(right_expr.clone()))
+              }
+            },
             Err(e) => Err(e),
           }
         },
+
         // Equals
         Op::Equal => {
           match (left_expr, right_expr) {
@@ -156,7 +202,8 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             (Expr::String(s1), Expr::String(s2)) => Ok(PyType::Expr(Expr::Bool(s1 == s2))),
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} == {}", left_expr, right_expr))
           }
-        }
+        },
+
         // Not Equals
         Op::NotEqual => {
           match (left_expr, right_expr) {
@@ -168,7 +215,7 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             (Expr::String(s1), Expr::String(s2)) => Ok(PyType::Expr(Expr::Bool(s1 == s2))),
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} != {}", left_expr, right_expr))
           }
-        }
+        },
     
         // Less than
         Op::Less => {
@@ -181,7 +228,8 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             (Expr::String(s1), Expr::String(s2)) => Ok(PyType::Expr(Expr::Bool(s1 < s2))),
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} < {}", left_expr, right_expr))
           }
-        }
+        },
+
         // Greater than
         Op::Greater => {
           match (left_expr, right_expr) {
@@ -193,7 +241,8 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             (Expr::String(s1), Expr::String(s2)) => Ok(PyType::Expr(Expr::Bool(s1 > s2))),
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} > {}", left_expr, right_expr))
           }
-        }
+        },
+
         // Less than or equal
         Op::LessEqual => {
           match (left_expr, right_expr) {
@@ -205,7 +254,8 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
             (Expr::String(s1), Expr::String(s2)) => Ok(PyType::Expr(Expr::Bool(s1 <= s2))),
             _ => Err(format!("TypeError: Invalid type(s) evaluating {} <= {}", left_expr, right_expr))
           }
-        }
+        },
+
         // Greater than or equal
         Op::GreaterEqual => {
           match (left_expr, right_expr) {
