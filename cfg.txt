@@ -14,7 +14,7 @@ AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | Multiplicativ
     AdditiveOperator -> + | -
 MultiplicativeExpr -> UnaryExpr MultiplicativeOperator MultiplicativeExpr | UnaryExpr
     MultiplicativeOperator -> * | /
-UnaryExpr -> TokUnaryMinus PrimaryExpr | PrimaryExpr
+UnaryExpr -> TokUnaryMinus PrimaryExpr | TokNot PrimaryExpr | PrimaryExpr
 PrimaryExpr -> TokInt | TokFloat | TokBool | TokVar | ( Expr )
 
 

@@ -30,11 +30,11 @@ pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i3
   let re_string = Regex::new(r#"^("[^"]*"|'[^"']*')"#).unwrap();
   let re_variable = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
   let re_assignment = Regex::new(r"^=").unwrap();
-  let re_if = Regex::new(r"^if").unwrap();
-  let re_elif = Regex::new(r"^elif").unwrap();
-  let re_else = Regex::new(r"^else").unwrap();
+  let re_if = Regex::new(r"^if$").unwrap();
+  let re_elif = Regex::new(r"^elif$").unwrap();
+  let re_else = Regex::new(r"^else$").unwrap();
   let re_colon = Regex::new(r"^:").unwrap();
-  // not
+  let re_not = Regex::new(r"^not$").unwrap();
 
   let mut tokens = Vec::new();
 
@@ -209,6 +209,12 @@ pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i3
       else if let Some(_) = re_or.captures(capture_str) {
         tokens.push(Token::TokOr);
         input = &input[2..];
+      }
+
+      // Not
+      else if let Some(_) = re_not.captures(capture_str) {
+        tokens.push(Token::TokNot);
+        input = &input[3..];
       }
 
       // If

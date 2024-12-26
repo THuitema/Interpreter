@@ -31,7 +31,8 @@ pub enum Token {
     TokElse,
     TokColon,
     TokIndent(i32),
-    TokDedent(i32)
+    TokDedent(i32),
+    TokNot
 }
 
 impl fmt::Display for Token {
@@ -64,6 +65,7 @@ impl fmt::Display for Token {
             Token::TokColon => write!(f, "TokColon"),
             Token::TokIndent(n) => write!(f, "TokIndent({})", n),
             Token::TokDedent(n) => write!(f, "TokDedent({})", n),
+            Token::TokNot => write!(f, "TokNot"),
         }
     }
 }
@@ -92,6 +94,7 @@ pub enum Expr {
     String(String),
     Var(String),
     Binop(Op, Box<PyType>, Box<PyType>),
+    Not(Box<PyType>)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -139,6 +142,7 @@ impl fmt::Display for Expr {
             Expr::Binop(op, left, right) => {
                 write!(f, "{} {} {}", left, op, right)
             },
+            Expr::Not(e) => write!(f, "Not({})", e)
         }
     }
 }
