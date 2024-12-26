@@ -53,6 +53,19 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
         None => Err(format!("NameError: name {} is not defined", v))
       }
     }
+
+    // Not
+    PyType::Expr(Expr::Not(e)) => {
+      match evaluate(e, env) {
+        Ok(eval) => {
+          match eval.to_bool() {
+            Ok(b) => Ok(PyType::Expr(Expr::Bool(!b))),
+            Err(e) => Err(e)
+          }
+        },
+        Err(e) => Err(e)
+      }
+    }
     
     // Binop
     PyType::Expr(Expr::Binop(op, left, right)) => {
@@ -184,7 +197,7 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
 
         // Or
         Op::Or => {
-          match left_expr.to_bool() {
+          match left.to_bool() { // left_expr
             Ok(b) => if !b {Ok(PyType::Expr(right_expr.clone()))} else {Ok(PyType::Expr(left_expr.clone()))},
             Err(e) => Err(e),
           }
@@ -192,7 +205,7 @@ fn eval_binop(op: &Op, left: &PyType, right: &PyType) -> Result<PyType, String> 
 
         // And
         Op::And => {
-          match left_expr.to_bool() {
+          match left.to_bool() { // left_expr
             Ok(b) => {
               if !b {
                 Ok(PyType::Expr(Expr::Bool(false)))

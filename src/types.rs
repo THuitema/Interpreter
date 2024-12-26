@@ -120,12 +120,12 @@ pub enum Op {
     GreaterEqual
 }
 
-impl Expr {
+impl PyType {
     pub fn to_bool(&self) -> Result<bool, String> {
         match self {
-            Expr::Bool(b) => Ok(*b),
-            Expr::Int(n) => if *n == 0 {Ok(false)} else {Ok(true)},
-            Expr::Float(n) => if *n == 0.0 {Ok(false)} else {Ok(true)},
+            PyType::Expr(Expr::Bool(b)) => Ok(*b),
+            PyType::Expr(Expr::Int(n)) => if *n == 0 {Ok(false)} else {Ok(true)},
+            PyType::Expr(Expr::Float(n)) => if *n == 0.0 {Ok(false)} else {Ok(true)},
             _ => Err(format!("TypeError: Cannot convert type to bool"))
         }
     }

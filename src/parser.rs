@@ -405,13 +405,23 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match lookahead(&tokens) {
     // TokUnaryMinus NumericalExpr
     Some(Token::TokUnaryMinus) => {
-      match parse_primary(&match_token(&tokens, &Token::TokUnaryMinus).unwrap()) {
+      match parse_primary(&match_token(tokens, &Token::TokUnaryMinus).unwrap()) {
         Ok((tokens2, num_expr)) => {
           Ok((tokens2, PyType::Expr(Expr::Binop(Op::Mult, Box::from(PyType::Expr(Expr::Int(-1))), Box::from(num_expr)))))
         },
         Err(e) => Err(e)
       }
     },
+
+    // TokNot NumericalExpr
+    Some(Token::TokNot) => {
+      match parse_primary(&match_token(tokens, &Token::TokNot).unwrap()) {
+        Ok((tokens2, num_expr)) => {
+          Ok((tokens2, PyType::Expr(Expr::Not(Box::from(num_expr)))))
+        },
+        Err(e) => Err(e)
+      }
+    }
 
     // NumericalExpr
     _ => parse_primary(tokens)
