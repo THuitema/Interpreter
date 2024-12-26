@@ -1,8 +1,9 @@
 T => Statement | Expr
 Statement -> AssignStatement | IfStatement| OrExpr 
 AssignStatement -> TokVar = OrExpr
-IfStatement -> TokIf OrExpr TokColon TokIndent Statement+ TokDedent 
+IfStatement -> TokIf OrExpr TokColon TokIndent Statement+ TokDedent ElseStatement
     Indent must be same length as dedent
+ElseStatement -> TokElse TokColon TokIndent Statement+ TokDedent
 Expr -> AndExpr TokOr Expr | AndExpr
 AndExpr -> EqualityExpr TokAnd AndExpr | EqualityExpr
 EqualityExpr -> RelationalExpr EqualityOperator EqualityExpr | RelationalExpr

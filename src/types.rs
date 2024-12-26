@@ -77,7 +77,7 @@ pub enum PyType {
 impl fmt::Display for PyType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PyType::Stmt(_) => Ok(()), //write!(f, "{}", s),
+            PyType::Stmt(s) => write!(f, "{}", s), // Ok(())
             PyType::Expr(e) => write!(f, "{}", e)
         }
     }
@@ -96,7 +96,7 @@ pub enum Expr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
-    If(Box<PyType>, Vec<PyType>), // condition, expr in body, else expr (link to if or else)
+    If(Box<PyType>, Vec<PyType>, Option<Vec<PyType>>), // condition, body if true, else body
     VarAssign(String, Box<PyType>),
     None
 }
@@ -145,21 +145,31 @@ impl fmt::Display for Expr {
 
 
 
-// impl fmt::Display for Stmt {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             Stmt::VarAssign(v, e) => write!(f, "{} = {}", v, e),
-//             Stmt::If(condition, body) => {
-//                 write!(f, "If({}, [", condition);
+impl fmt::Display for Stmt {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Stmt::VarAssign(v, e) => write!(f, "{} = {}", v, e),
+            Stmt::If(condition, body, else_body) => {
+                write!(f, "If({}, [", condition);
 
-//                 for expr in body {
-//                     write!(f, "{}, ", expr);
-//                 }
-//                 write!(f, "])")
-//             }
-//         }
-//     }
-// }
+                for expr in body {
+                    write!(f, "{}, ", expr);
+                }
+                write!(f, "])");
+                if let Some(else_body_list) = else_body {
+                    write!(f, " Else [");
+                    for expr in else_body_list {
+                        write!(f, "{}, ", expr);
+                    }
+                    write!(f, "]")
+                } else {
+                    write!(f, "")
+                } 
+            },
+            Stmt::None => write!(f, "")
+        }
+    }
+}
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

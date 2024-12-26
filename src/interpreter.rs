@@ -17,16 +17,17 @@ fn env_insert(env: &mut Environment, name: &String, value: &PyType) {
 }
 
 // Update original environment with new variable values (do not add new variable names)
-fn env_update(env: &mut Environment, closure: &mut Environment) {
-  for (target, old_val) in env.iter_mut() {
-    for (key, new_val) in closure.iter() {
-      if target == key && *old_val != *new_val {
-        *old_val = new_val.clone();
-        return;
-      }
-    }
-  }
-}
+// fn env_update(env: &mut Environment, closure: &mut Environment) {
+//   // Update existing variables
+//   for (target, old_val) in env.iter_mut() {
+//     for (key, new_val) in closure.iter() {
+//       if target == key && *old_val != *new_val {
+//         *old_val = new_val.clone();
+//         return;
+//       }
+//     }
+//   }
+// }
 
 pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> {
   match expr {
@@ -79,30 +80,42 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
       }
     }
 
-    // If Statement
-    PyType::Stmt(Stmt::If(condition, body)) => eval_if(condition, body, env),
+    // If-Else Statement
+    PyType::Stmt(Stmt::If(condition, body, else_body)) => eval_if(condition, body, else_body, env),
     _ => Err("SyntaxError: unexpected expression".to_string())
   }
 }
 
-fn eval_if(condition: &Box<PyType>, body: &Vec<PyType>, env: &mut Environment) -> Result<PyType, String> {
-  let mut closure = env.clone();
+fn eval_if(condition: &Box<PyType>, body: &Vec<PyType>, else_body: &Option<Vec<PyType>>, env: &mut Environment) -> Result<PyType, String> {
+  // let mut closure = env.clone();
 
   // Check if condition evaluates to boolean
-  match evaluate(condition, &mut closure) {
+  match evaluate(condition, env) { // closure
     Ok(PyType::Expr(Expr::Bool(b))) => {
       if b {
         // Process all lines, return result of last line
         for i in 0..(body.len() - 1) {
-          if let Err(e) = evaluate(&body[i], &mut closure) {
+          if let Err(e) = evaluate(&body[i], env) { // closure
             return Err(e);
           }
         }
-        let result = evaluate(&body[body.len() - 1], &mut closure);
-        env_update(env, &mut closure);
+        let result = evaluate(&body[body.len() - 1], env); //closure
+        // env_update(env, &mut closure);
         return result;
       } else {
-        Ok(PyType::Stmt(Stmt::None))
+        // Interpret else statement if it exists
+        if let Some(else_body_list) = else_body {
+          for i in 0..(else_body_list.len() - 1) {
+            if let Err(e) = evaluate(&else_body_list[i], env) { // closure
+              return Err(e);
+            }
+          }
+          let result = evaluate(&else_body_list[else_body_list.len() - 1], env); //closure
+          // env_update(env, &mut closure);
+          return result;
+        } else {
+          return Ok(PyType::Stmt(Stmt::None));
+        }
       }
     },
     Ok(_) => Err("SyntaxError: condition of if statement does not evaluate to boolean".to_string()),

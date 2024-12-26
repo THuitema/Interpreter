@@ -56,7 +56,7 @@ fn execute(input: &str, env: &mut Environment) {
                             match interpreter::evaluate(&expr, env) {
                                 // Ok(result) => println!("{}", result),
                                 Ok(PyType::Expr(result)) => println!("{}", result),
-                                Ok(result) => print!("{}", result), // PyType::Stmt (print nothing)
+                                Ok(_) => print!(""), // print!("{}", result), // PyType::Stmt (print nothing)
                                 Err(e) => println!("{}", e)
                             }
                         },

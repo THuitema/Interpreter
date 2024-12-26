@@ -72,7 +72,17 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
                   let mut body_contents = Vec::<PyType>::new();
                   match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
                     Ok((tokens4, _)) => {
-                      Ok((tokens4, PyType::Stmt(Stmt::If(Box::from(condition), body_contents))))
+
+                      // Check if there's an else statement to parse
+                      if lookahead(&tokens4) == Some(&Token::TokElse) {
+                        match parse_else(&match_token(&tokens4, &Token::TokElse).unwrap(), prev_indent, indent_stack) {
+                          Ok((tokens5, else_body)) => return Ok((tokens5, PyType::Stmt(Stmt::If(Box::from(condition), body_contents, Some(else_body))))),
+                          Err(e) => return Err(e)
+                        }
+                      }
+                      else {
+                        return Ok((tokens4, PyType::Stmt(Stmt::If(Box::from(condition), body_contents, None))))
+                      }
                     },
                     Err(e) => Err(e)
                   }
@@ -90,6 +100,39 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
     Err(e) => Err(e)
   }
 }
+
+fn parse_else(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<PyType>), String> {
+  indent_stack.push(*prev_indent); // not sure if this is right
+  
+  match match_token(tokens, &Token::TokColon) {
+    Ok(tokens2) if tokens2.is_empty() => {
+      // Read first line of body and tokenize
+      match read_body_line(prev_indent) {
+        Ok((body_tokens, indentation)) => {
+          *prev_indent = indentation;
+          match lookahead(&body_tokens) {
+            Some(Token::TokIndent(n)) => {
+              // Parse rest of body
+              let mut body_contents = Vec::<PyType>::new();
+              match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
+                Ok((tokens3, _)) => {
+                  Ok((tokens3, body_contents))
+                },
+                Err(e) => Err(e)
+              }
+            }
+            _ => Err("Indentation Error: expected indent".to_string())
+          }
+        },
+        Err(e) => Err(e)
+      }
+    },
+    Err(e) => Err(e),
+    _ => Err("SyntaxError: expected new line after ':'".to_string()) // if more tokens after :
+
+  }
+}
+
 
 // Parses a closure (determined by indents in Python), returning a list of the expressions in it
 fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<PyType>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<PyType>), String> {
