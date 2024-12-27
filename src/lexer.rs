@@ -35,6 +35,9 @@ pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i3
   let re_else = Regex::new(r"^else$").unwrap();
   let re_colon = Regex::new(r"^:").unwrap();
   let re_not = Regex::new(r"^not$").unwrap();
+  let re_def = Regex::new(r"^def$").unwrap();
+  let re_return = Regex::new(r"^return$").unwrap();
+  let re_comma = Regex::new(r"^,").unwrap();
 
   let mut tokens = Vec::new();
 
@@ -185,6 +188,12 @@ pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i3
       input = &input[1..];
     }
 
+    // Comma
+    else if let Some(_) = re_comma.captures(input) {
+      tokens.push(Token::TokComma);
+      input = &input[1..];
+    }
+
     // Protected keywords and variable names
     else if let Some(capture) = re_variable.captures(input) {
       let capture_str = capture.get(0).unwrap().as_str();
@@ -233,6 +242,18 @@ pub fn tokenize(input: &str, prev_indent_spaces: &i32) -> Result<(Vec<Token>, i3
       else if let Some(_) = re_else.captures(capture_str) {
         tokens.push(Token::TokElse);
         input = &input[4..];
+      }
+
+      // Def
+      else if let Some(_) = re_def.captures(capture_str) {
+        tokens.push(Token::TokDef);
+        input = &input[3..];
+      }
+
+      // Return
+      else if let Some(_) = re_return.captures(capture_str) {
+        tokens.push(Token::TokReturn);
+        input = &input[6..];
       }
 
       // Variable name

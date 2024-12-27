@@ -32,7 +32,10 @@ pub enum Token {
     TokColon,
     TokIndent(i32),
     TokDedent(i32),
-    TokNot
+    TokNot,
+    TokDef,
+    TokReturn,
+    TokComma
 }
 
 impl fmt::Display for Token {
@@ -66,6 +69,9 @@ impl fmt::Display for Token {
             Token::TokIndent(n) => write!(f, "TokIndent({})", n),
             Token::TokDedent(n) => write!(f, "TokDedent({})", n),
             Token::TokNot => write!(f, "TokNot"),
+            Token::TokDef => write!(f, "TokDef"),
+            Token::TokReturn => write!(f, "TokReturn"),
+            Token::TokComma => write!(f, "TokComma")
         }
     }
 }
@@ -94,13 +100,15 @@ pub enum Expr {
     String(String),
     Var(String),
     Binop(Op, Box<PyType>, Box<PyType>),
-    Not(Box<PyType>)
+    Not(Box<PyType>),
+    Return(Box<PyType>)
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
     If(Box<PyType>, Vec<PyType>, Option<Vec<PyType>>), // condition, body if true, else body
     VarAssign(String, Box<PyType>),
+    Function(String, Vec<String>, Vec<PyType>), // function name, parameter names, body
     None
 }
 
@@ -142,7 +150,8 @@ impl fmt::Display for Expr {
             Expr::Binop(op, left, right) => {
                 write!(f, "{} {} {}", left, op, right)
             },
-            Expr::Not(e) => write!(f, "Not({})", e)
+            Expr::Not(e) => write!(f, "Not({})", e),
+            Expr::Return(e) => write!(f, "Return({})", e)
         }
     }
 }
@@ -170,6 +179,19 @@ impl fmt::Display for Stmt {
                     write!(f, "")
                 } 
             },
+            Stmt::Function(name, parameters, body) => {
+                write!(f, "Def({}, [", name);
+
+                for p in parameters {
+                    write!(f, "{}, ", p);
+                }
+                write!(f, "], [");
+
+                for line in body {
+                    write!(f, "{}, ", line);
+                }
+                write!(f, "])")
+            }
             Stmt::None => write!(f, "")
         }
     }

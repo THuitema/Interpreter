@@ -1,14 +1,17 @@
-T => Statement | Expr
-Statement -> AssignStatement | IfStatement| OrExpr 
-AssignStatement -> TokVar = OrExpr
-IfStatement -> TokIf OrExpr TokColon TokIndent Statement+ TokDedent ElseStatement
+T => Statement
+Statement -> AssignStatement | IfStatement| FunctionStatement | Expr 
+AssignStatement -> TokVar = Expr
+IfStatement -> TokIf Expr TokColon TokIndent Statement+ TokDedent ElseStatement
     Indent must be same length as dedent
 ElseStatement -> TokElse TokColon TokIndent Statement+ TokDedent
+FunctionStatement -> TokDef TokVar ( TokVarTokComma* ) TokColon TokIndent Statement+  TokDedent
+
+ReturnExpr -> TokReturn Expr | Expr
 Expr -> AndExpr TokOr Expr | AndExpr
 AndExpr -> EqualityExpr TokAnd AndExpr | EqualityExpr
 EqualityExpr -> RelationalExpr EqualityOperator EqualityExpr | RelationalExpr
     EqualityOperator -> == | !=
-RelationalExpr -> AdditiveExpr RelationalOperator RelationalExpr | AdditiveExpr ***COMPLETE THIS FOR < > <= >= != AT LATER TIME 
+RelationalExpr -> AdditiveExpr RelationalOperator RelationalExpr | AdditiveExpr
     RelationalOperator -> < | > | <= | >=
 AdditiveExpr -> MultiplicativeExpr AdditiveOperator AdditiveExpr | MultiplicativeExpr TokUnaryMinus NumericalExpr | MultiplicativeExpr
     AdditiveOperator -> + | -

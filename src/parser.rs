@@ -32,13 +32,16 @@ fn read_body_line(prev_indent: &mut i32) -> Result<(Vec<Token>, i32), String> {
   tokenize(&input, prev_indent)
 }
 
-pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, PyType), String> {
+pub fn parse(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>, in_function: bool) -> Result<(Vec<Token>, PyType), String> {
   match (lookahead(tokens), lookahead_at(tokens, 1)) {
     // AssignStatement
     (Some(Token::TokVar(v)), Some(Token::TokAssign)) => parse_assign(&match_token(&tokens, &Token::TokVar(v.clone())).unwrap(), v),
     
     // IfStatement
-    (Some(Token::TokIf), _) => parse_if(&match_token(&tokens, &Token::TokIf).unwrap(), prev_indent, indent_stack),
+    (Some(Token::TokIf), _) => parse_if(&match_token(&tokens, &Token::TokIf).unwrap(), prev_indent, indent_stack, in_function),
+
+    // FunctionStatement
+    (Some(Token::TokDef), _) => parse_function(&match_token(&tokens, &Token::TokDef).unwrap(), prev_indent, indent_stack),
     
     // Expr
     _ => parse_expr(tokens)
@@ -52,8 +55,81 @@ fn parse_assign(tokens: &Vec<Token>, var_name: &String) -> Result<(Vec<Token>, P
   }
 }
 
+fn parse_function(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, PyType), String> {
+  indent_stack.push(*prev_indent);
+
+  // Parse function header
+  match lookahead(tokens) {
+    Some(Token::TokVar(func_name)) => {
+      // Parse parameters
+      let tokens2 = match_token(&match_token(&tokens, &Token::TokVar(func_name.to_string())).unwrap(), &&Token::TokLParen).unwrap(); // match name and (
+      
+      match parse_parameters(&tokens2, &mut Vec::new()) {
+        Ok((tokens3, parameters)) if tokens3.is_empty() => {
+          // Read indent and first line, then parse rest
+          match read_body_line(prev_indent) {
+            Ok((line_tokens, indentation)) => {
+              *prev_indent = indentation;
+              match lookahead(&line_tokens) {
+                Some(Token::TokIndent(n)) => {
+                  // Parse body of function
+                  let mut body_contents = Vec::<PyType>::new();
+                  match parse_body(&match_token(&line_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack, true) {
+                    Ok((tokens4, _)) => Ok((tokens4, PyType::Stmt(Stmt::Function(func_name.to_string(), parameters, body_contents.to_vec())))),
+                    Err(e) => Err(e)
+                  }
+                }, 
+                _ => Err("IndentationError: expected indent".to_string())
+              }
+            },
+            Err(e) => Err(e)
+          }
+        },
+        Ok(_) => Err("SyntaxError: incorrect syntax".to_string()),
+        Err(e) => Err(e)
+      }
+    },
+    _ => Err("SyntaxError: no name given to function".to_string()),
+  }
+}
+
+fn parse_parameters(tokens: &Vec<Token>, parameters: &mut Vec<String>) -> Result<(Vec<Token>, Vec<String>), String> {
+  // ((TokVar TokComma)* TokVar? TokRParen Tok Colon
+  match lookahead(tokens) {
+    // Match parameter
+    Some(Token::TokVar(p)) => {
+      parameters.push(p.to_string());
+      let tokens2 = match_token(&tokens, &Token::TokVar(p.to_string())).unwrap();
+      match lookahead(&tokens2) {
+        // End of parameters
+        Some(Token::TokRParen) => {
+          let tokens3 = match_token(&tokens2, &Token::TokRParen).unwrap();
+          match lookahead(&tokens3) {
+            Some(Token::TokColon) => Ok((match_token(&tokens3, &Token::TokColon).unwrap(), parameters.to_vec())),
+            _ => Err("SyntaxError: function header missing \":\"".to_string())
+          }
+        },
+        // Another parameter 
+        Some(Token::TokComma) => parse_parameters(&match_token(&tokens2, &Token::TokComma).unwrap(), parameters),
+
+        _ => Err("SyntaxError: incorrect syntax in function header".to_string())
+      }
+    },
+
+    // End of parameters
+    Some(Token::TokRParen) => {
+      let tokens2 = match_token(&tokens, &Token::TokRParen).unwrap();
+      match lookahead(&tokens2) {
+        Some(Token::TokColon) => Ok((match_token(&tokens2, &Token::TokColon).unwrap(), parameters.to_vec())),
+        _ => Err("SyntaxError: function header missing \":\"".to_string())
+      }
+    },
+    _ => Err("SyntaxError: incorrect syntax in function header".to_string())
+  }
+}
+
 // Returns expression of if statement condition and list of expressions in body
-fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, PyType), String> {
+fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>, in_function: bool) -> Result<(Vec<Token>, PyType), String> {
   indent_stack.push(*prev_indent);
   match parse_expr(tokens) {
     // Condition of if statement
@@ -70,12 +146,12 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
 
                   // Parsing body of if statement
                   let mut body_contents = Vec::<PyType>::new();
-                  match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
+                  match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack, in_function) {
                     Ok((tokens4, _)) => {
 
                       // Check if there's an else statement to parse
                       if lookahead(&tokens4) == Some(&Token::TokElse) {
-                        match parse_else(&match_token(&tokens4, &Token::TokElse).unwrap(), prev_indent, indent_stack) {
+                        match parse_else(&match_token(&tokens4, &Token::TokElse).unwrap(), prev_indent, indent_stack, in_function) {
                           Ok((tokens5, else_body)) => return Ok((tokens5, PyType::Stmt(Stmt::If(Box::from(condition), body_contents, Some(else_body))))),
                           Err(e) => return Err(e)
                         }
@@ -101,7 +177,7 @@ fn parse_if(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i
   }
 }
 
-fn parse_else(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<PyType>), String> {
+fn parse_else(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec<i32>, in_function: bool) -> Result<(Vec<Token>, Vec<PyType>), String> {
   indent_stack.push(*prev_indent); // not sure if this is right
   
   match match_token(tokens, &Token::TokColon) {
@@ -114,7 +190,7 @@ fn parse_else(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec
             Some(Token::TokIndent(n)) => {
               // Parse rest of body
               let mut body_contents = Vec::<PyType>::new();
-              match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack) {
+              match parse_body(&match_token(&body_tokens, &Token::TokIndent(*n)).unwrap(), prev_indent, &mut body_contents, indent_stack, in_function) {
                 Ok((tokens3, _)) => {
                   Ok((tokens3, body_contents))
                 },
@@ -135,13 +211,29 @@ fn parse_else(tokens: &Vec<Token>, prev_indent: &mut i32, indent_stack: &mut Vec
 
 
 // Parses a closure (determined by indents in Python), returning a list of the expressions in it
-fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<PyType>, indent_stack: &mut Vec<i32>) -> Result<(Vec<Token>, Vec<PyType>), String> {
-  match parse(tokens, prev_indent, indent_stack) {
+fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Vec<PyType>, indent_stack: &mut Vec<i32>, in_function: bool) -> Result<(Vec<Token>, Vec<PyType>), String> {
+
+  let mut is_return = false;
+  let mut tokens = tokens.clone();
+
+  // Deal with return expression if found
+  if lookahead(&tokens) == Some(&Token::TokReturn) {
+    if !in_function {
+      return Err("SyntaxError: 'return' outside function".to_string());
+    }
+    is_return = true;
+    tokens = match_token(&tokens, &Token::TokReturn).unwrap();
+  } 
+
+  match parse(&tokens, prev_indent, indent_stack, in_function) {
     Ok((tokens2, parsed_line)) => {
       match lookahead(&tokens2) {
-
         Some(Token::TokDedent(n)) => {
-          body_contents.push(parsed_line);
+          if is_return {
+            body_contents.push(PyType::Expr(Expr::Return(Box::from(parsed_line))));
+          } else {
+            body_contents.push(parsed_line);
+          }
         
           let peek = indent_stack.last().unwrap();
           // Current line was unindented to return to the current scope
@@ -151,7 +243,7 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
             if indent_stack.is_empty() {
               return Ok((match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), body_contents.to_vec()));
             }
-            return parse_body(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack);
+            return parse_body(&match_token(&tokens2, &Token::TokDedent(*n)).unwrap(), prev_indent, body_contents, indent_stack, in_function);
           } else if *n < *peek { 
             // Current line is unindented past this current level, so return to get to outside scope
             indent_stack.pop();
@@ -167,7 +259,12 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
         },
         Some(_) => Err(format!("SyntaxError: not all tokens from previous line were parsed")),
         None => {
-          body_contents.push(parsed_line);
+          if is_return {
+            body_contents.push(PyType::Expr(Expr::Return(Box::from(parsed_line))));
+          } else {
+            body_contents.push(parsed_line);
+          }
+
           match read_body_line(prev_indent) {
             Ok((next_line, indentation)) => {
               *prev_indent = indentation;
@@ -192,7 +289,7 @@ fn parse_body(tokens: &Vec<Token>, prev_indent: &mut i32, body_contents: &mut Ve
         
                 },
                 // Line on same level was entered, parse it and continue on this level
-                _ => parse_body(&next_line, prev_indent, body_contents, indent_stack)
+                _ => parse_body(&next_line, prev_indent, body_contents, indent_stack, in_function)
                 // None => {
                 //   return Err(format!("Syntax Error: nothing entered"));
                 // }
