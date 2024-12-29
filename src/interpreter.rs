@@ -16,19 +16,6 @@ fn env_insert(env: &mut Environment, name: &String, value: &PyType) {
   env.push((name.clone(), value.clone()));
 }
 
-// Update original environment with new variable values (do not add new variable names)
-// fn env_update(env: &mut Environment, closure: &mut Environment) {
-//   // Update existing variables
-//   for (target, old_val) in env.iter_mut() {
-//     for (key, new_val) in closure.iter() {
-//       if target == key && *old_val != *new_val {
-//         *old_val = new_val.clone();
-//         return;
-//       }
-//     }
-//   }
-// }
-
 pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> {
   match expr {
 
@@ -95,7 +82,16 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
 
     // If-Else Statement
     PyType::Stmt(Stmt::If(condition, body, else_body)) => eval_if(condition, body, else_body, env),
+
+    // Function Definition
+    PyType::Stmt(Stmt::Function(func_name, _, _)) => {
+      env_insert(env, func_name, expr);
+      Ok(expr.clone())
+    },
+
     _ => Err("SyntaxError: unexpected expression".to_string())
+
+    
   }
 }
 
