@@ -65,6 +65,9 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
       }
     },
 
+    // Function Call
+    PyType::Expr(Expr::FunctionCall(func_name, arguments)) => eval_function_call(func_name, arguments, env),
+
     // *** STATEMENTS ***
 
     // VarAssign
@@ -92,6 +95,50 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
     _ => Err("SyntaxError: unexpected expression".to_string())
 
     
+  }
+}
+
+fn eval_function_call(func_name: &String, arguments: &Vec<PyType>, env: &mut Environment) -> Result<PyType, String> {
+  // Get function from environment, throw error if not there
+  // Check if same # of params & args
+  // For each parameter, add var & matching argument to environment 
+  // Evaluate function body line by line, return Expr if return Expr found
+
+  match env_get(env, func_name) {
+    Some(PyType::Stmt(Stmt::Function(_, parameters, body))) => {
+      if arguments.len() != parameters.len() {
+        return Err(format!("TypeError: {} takes {} positional arguments but {} were given", func_name, parameters.len(), arguments.len()))
+      }
+
+      // Add arguments & parameters to environment
+      for i in 0..parameters.len() {
+        let eval_result = evaluate(&arguments[i], env);
+
+        if let Err(e) = eval_result {
+          return Err(e);
+        }
+        if let Ok(PyType::Expr(eval_arg)) = eval_result {
+          env_insert(env, &parameters[i], &PyType::Expr(eval_arg))
+        } else {
+          return Err("TypeError: argument does not evaluate to an expression".to_string());
+        }
+      }
+
+      // Evaluate function line-by-line, return Expr if return found
+      // Value returned only if Return Expr found
+      for i in 0..body.len() {
+        let eval_line = evaluate(&body[i], env);
+        if let Err(e) = eval_line {
+          return Err(e);
+        }
+        // Return Expr here if Return statement found
+        // Problem: if Return is nested (e.g. in if statement)
+        // Need to go through other eval functions and return when Expr::Return found
+      }
+      return Ok(PyType::Stmt(Stmt::None));
+    },
+    Some(_) => Err("TypeError: object is not callable".to_string()),
+    None => Err(format!("NameError: name {} is not defined", func_name))
   }
 }
 
