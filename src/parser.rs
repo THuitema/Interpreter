@@ -500,9 +500,9 @@ fn parse_multiplicative(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), Str
 
 fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
   match lookahead(&tokens) {
-    // TokUnaryMinus NumericalExpr
+    // TokUnaryMinus FunctionCallExpr
     Some(Token::TokUnaryMinus) => {
-      match parse_primary(&match_token(tokens, &Token::TokUnaryMinus).unwrap()) {
+      match parse_function_call(&match_token(tokens, &Token::TokUnaryMinus).unwrap()) {
         Ok((tokens2, num_expr)) => {
           Ok((tokens2, PyType::Expr(Expr::Binop(Op::Mult, Box::from(PyType::Expr(Expr::Int(-1))), Box::from(num_expr)))))
         },
@@ -510,9 +510,9 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
       }
     },
 
-    // TokNot NumericalExpr
+    // TokNot FunctionCallExpr
     Some(Token::TokNot) => {
-      match parse_primary(&match_token(tokens, &Token::TokNot).unwrap()) {
+      match parse_function_call(&match_token(tokens, &Token::TokNot).unwrap()) {
         Ok((tokens2, num_expr)) => {
           Ok((tokens2, PyType::Expr(Expr::Not(Box::from(num_expr)))))
         },
@@ -520,10 +520,49 @@ fn parse_unary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
       }
     }
 
-    // NumericalExpr
+    // FunctionCallExpr
+    _ => parse_function_call(tokens)
+  }
+}
+
+fn parse_function_call(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {
+  match (lookahead(tokens), lookahead_at(tokens, 1)) {
+    // TokVar TokLParen (Expr TokComma)* TokRParen 
+    (Some(Token::TokVar(func_name)), Some(Token::TokLParen)) => {
+      let mut args = Vec::<PyType>::new();
+      let tokens2 = match_token(&match_token(&tokens, &Token::TokVar(func_name.to_string())).unwrap(), &Token::TokLParen).unwrap(); // match name and (
+      match parse_arguments(&tokens2, &mut args) {
+        Ok((tokens3, _)) => {
+          Ok((tokens3, PyType::Expr(Expr::FunctionCall(func_name.to_string(), args))))
+        },
+        Err(e) => Err(e)
+      }
+    },
+    // PrimaryExpr
     _ => parse_primary(tokens)
   }
-  
+}
+
+fn parse_arguments(tokens: &Vec<Token>, arguments: &mut Vec<PyType>) -> Result<(Vec<Token>, Vec<PyType>), String> {
+  match lookahead(tokens) {
+    // End of arguments
+    Some(Token::TokRParen) => Ok((match_token(tokens, &Token::TokRParen).unwrap(), arguments.to_vec())),
+    // Continue parsing
+    _ => {
+      match parse_expr(tokens) {
+        Ok((tokens2, curr_arg)) => {
+          arguments.push(curr_arg);
+          match lookahead(&tokens2) {
+            // End of arguments
+            Some(Token::TokRParen) => Ok((match_token(&tokens2, &Token::TokRParen).unwrap(), arguments.to_vec())),
+            Some(Token::TokComma) => parse_arguments(&match_token(&tokens2, &Token::TokComma).unwrap(), arguments),
+            _ => Err("SyntaxError".to_string())
+          }
+        },
+        Err(e) => Err(e)
+      }
+    }
+  }
 }
 
 fn parse_primary(tokens: &Vec<Token>) -> Result<(Vec<Token>, PyType), String> {

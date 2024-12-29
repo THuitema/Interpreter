@@ -101,7 +101,8 @@ pub enum Expr {
     Var(String),
     Binop(Op, Box<PyType>, Box<PyType>),
     Not(Box<PyType>),
-    Return(Box<PyType>)
+    Return(Box<PyType>),
+    FunctionCall(String, Vec<PyType>) // function name, arguments supplied
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -151,7 +152,16 @@ impl fmt::Display for Expr {
                 write!(f, "{} {} {}", left, op, right)
             },
             Expr::Not(e) => write!(f, "Not({})", e),
-            Expr::Return(e) => write!(f, "Return({})", e)
+            Expr::Return(e) => write!(f, "Return({})", e),
+            Expr::FunctionCall(n, args ) => {
+                write!(f, "FunctionCall({}, [", n);
+
+                for arg in args {
+                    write!(f, "{}, ", arg);
+                }
+
+                write!(f, "])")
+            }
         }
     }
 }
