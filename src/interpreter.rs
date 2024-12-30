@@ -68,6 +68,19 @@ pub fn evaluate(expr: &PyType, env: &mut Environment) -> Result<PyType, String> 
     // Function Call
     PyType::Expr(Expr::FunctionCall(func_name, arguments)) => eval_function_call(func_name, arguments, env),
 
+    // Return
+    PyType::Expr(Expr::Return(e)) => {
+      match evaluate(e, env) {
+        Ok(eval) => {
+          if let PyType::Expr(_) = eval {
+            return Ok(PyType::Expr(Expr::Return(Box::from(eval))));
+          }
+          return Err("TypeError: Return value is not an expression".to_string());
+        },
+        Err(e) => Err(e)
+      }
+    }
+
     // *** STATEMENTS ***
 
     // VarAssign
@@ -131,9 +144,10 @@ fn eval_function_call(func_name: &String, arguments: &Vec<PyType>, env: &mut Env
         if let Err(e) = eval_line {
           return Err(e);
         }
-        // Return Expr here if Return statement found
-        // Problem: if Return is nested (e.g. in if statement)
-        // Need to go through other eval functions and return when Expr::Return found
+        // Return expression found, return function here
+        if let Ok(PyType::Expr(Expr::Return(expr))) = eval_line {
+          return Ok(*expr);
+        }
       }
       return Ok(PyType::Stmt(Stmt::None));
     },
@@ -143,31 +157,38 @@ fn eval_function_call(func_name: &String, arguments: &Vec<PyType>, env: &mut Env
 }
 
 fn eval_if(condition: &Box<PyType>, body: &Vec<PyType>, else_body: &Option<Vec<PyType>>, env: &mut Environment) -> Result<PyType, String> {
-  // let mut closure = env.clone();
-
   // Check if condition evaluates to boolean
-  match evaluate(condition, env) { // closure
+  match evaluate(condition, env) { 
     Ok(PyType::Expr(Expr::Bool(b))) => {
       if b {
         // Process all lines, return result of last line
         for i in 0..(body.len() - 1) {
-          if let Err(e) = evaluate(&body[i], env) { // closure
+          let eval_line = evaluate(&body[i], env);
+
+          if let Err(e) = eval_line { 
             return Err(e);
           }
+          // Return found
+          else if let Ok(PyType::Expr(Expr::Return(_))) = eval_line {
+            return eval_line;
+          }
         }
-        let result = evaluate(&body[body.len() - 1], env); //closure
-        // env_update(env, &mut closure);
+        let result = evaluate(&body[body.len() - 1], env);
         return result;
       } else {
         // Interpret else statement if it exists
         if let Some(else_body_list) = else_body {
           for i in 0..(else_body_list.len() - 1) {
-            if let Err(e) = evaluate(&else_body_list[i], env) { // closure
+            let line_eval = evaluate(&else_body_list[i], env);
+            if let Err(e) = line_eval {
               return Err(e);
             }
+            // Return found
+            else if let Ok(PyType::Expr(Expr::Return(_))) = line_eval {
+              return line_eval;
+            }
           }
-          let result = evaluate(&else_body_list[else_body_list.len() - 1], env); //closure
-          // env_update(env, &mut closure);
+          let result = evaluate(&else_body_list[else_body_list.len() - 1], env);
           return result;
         } else {
           return Ok(PyType::Stmt(Stmt::None));
