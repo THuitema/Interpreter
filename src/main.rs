@@ -10,6 +10,8 @@ use types::{print_env, Environment};
 
 fn main() {
     println!("TomPython Version 1.0");
+    println!("Type 'q' or 'quit' to quit");
+    println!("Type 'help' for more information");
 
     let stdin = io::stdin();
     let mut env: Environment = Vec::new();
@@ -20,12 +22,15 @@ fn main() {
 
         let mut input = String::new();
         stdin.read_line(&mut input).unwrap();
-
-        // let input = input.trim();
+        input.pop();
 
         // Exit condition
         if input == "q" || input == "quit" {
             break;
+        }
+        else if input == "help" {
+            println!("Implemented features: math expressions, variable assignment, if-else statements, and functions");
+            println!("To view complete syntax for TomPython see README.md at https://github.com/THuitema/TomPython");
         }
         
         execute(&input, &mut env);
@@ -70,9 +75,6 @@ fn execute(input: &str, env: &mut Environment) {
                         }
                         
                     }
-                    // print!("Parse Tree: {}\n", expr);
-                    // print_env(env);
-                    
                 },
                 Err(e) => println!("{}", e)
             }
