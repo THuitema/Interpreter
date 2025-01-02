@@ -41,3 +41,15 @@ FunctionCallExpr -> ```TokVar``` ```(``` (Expr ```,```)* ```)``` | PrimaryExpr
 PrimaryExpr -> ```TokInt``` | ```TokFloat``` | ```TokBool``` | ```TokVar``` | ```(``` Expr ```)```
 
 ## Getting Started
+1. Clone the git repository
+   ```shell
+   git clone https://github.com/THuitema/TomPython.git
+   ```
+2. Compile the rust files
+   ```shell
+   cargo build
+   ```
+3. Run the interpreter
+   ```shell
+   cargo run
+   ```
