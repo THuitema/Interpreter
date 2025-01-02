@@ -1,5 +1,7 @@
 # TomPython
-A basic Python interpreter written in Rust
+A basic interactive Python interpreter written in Rust
+
+<img src="example.png" alt="example code" width="400"/>
 
 ## Description
 I gained inspiration for this project after completing CMSC 330 (Organization of Programming Languages) at UMD. My favorite project in the class was making an OCaml interpreter, so I wanted to explore the topic further with this project.
@@ -15,7 +17,7 @@ Statement -> AssignStatement | IfStatement| FunctionStatement | Expr
 AssignStatement -> ```TokVar``` = Expr
 
 IfStatement -> ```if``` Expr ```:``` ```TokIndent``` Statement+ ```TokDedent``` ElseStatement<br>&nbsp;&nbsp;&nbsp;&nbsp;*Indent must be same length as dedent*
-    
+
 ElseStatement -> ```else``` ```:``` ```TokIndent``` Statement+ ```TokDedent```
 
 FunctionStatement -> ```def``` ```TokVar``` ```(``` (```TokVar``` ```TokComma``` )* ```)``` ```:``` ```TokIndent``` Statement+  ```TokDedent```
